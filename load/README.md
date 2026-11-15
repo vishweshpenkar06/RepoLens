@@ -8,7 +8,7 @@ Start the app with an API key and rate limiting disabled for measurement:
 ```bash
 export REPOLENS_API_KEY=loadtest-key
 export RATE_LIMIT_ENABLED=false
-java -jar target/repolens-0.0.1-SNAPSHOT.jar
+java -jar target/repolens-0.1.0.jar
 ```
 
 Run:

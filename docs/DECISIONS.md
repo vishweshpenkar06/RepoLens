@@ -298,3 +298,28 @@ within noise); caching was the dominant lever for `/ask` (808 vs 53 req/s), and 
 2→8 improved ingestion only ~7% because GitHub fetch dominates.
 **Tradeoff:** single runs on a shared desktop; treat ±10% as noise. Provenance: CHECKPOINT 5 was
 delegated to the agent.
+
+## ADR-0027: Deploy with Docker Compose on a small VPS behind Caddy
+
+**Decision:** production target is a single VPS running `deploy/docker-compose.prod.yml`
+(Postgres+pgvector, app, Caddy). Caddy terminates TLS; only 80/443 are public. Images are published
+to GHCR by CI on `main` and version tags. The public demo URL and provider key are pending owner
+credentials.
+**Why:** cheapest and simplest target for a self-hosted RAG service; no platform-specific config;
+the same image runs locally. Caddy gives automatic certificates with a two-line config.
+**Alternatives:** Fly.io (needs account/payment, Postgres+pgvector wiring), Railway/Render
+(managed Postgres without guaranteed pgvector), Kubernetes (overkill).
+**Tradeoff:** one node, per-node caches/rate limits, manual scaling; acceptable for v0.1.0.
+
+## ADR-0028: Container layout, read-only rootfs and ONNX native library
+
+**Decision:** multi-stage build (JDK 25 builder, JRE 25 runtime), Spring Boot 4 tools-mode extraction
+(`jar + lib/` layers), non-root uid 1001, read-only root filesystem, `no-new-privileges`, and a
+tmpfs `/tmp` mounted with `exec,size=512m`. The ONNX model cache is a named volume at
+`/app/.cache`.
+**Why:** the layered dependency directory is cached separately from the app jar; non-root/read-only
+reduce blast radius. ONNX Runtime extracts `libonnxruntime.so` to `/tmp` and needs an executable
+tmpfs; without `exec` startup fails with "failed to map segment from shared object".
+**Tradeoff:** Boot 4 `jarmode=tools` extraction is `jar + lib/` rather than the older four layer
+directories, so there are two image layers (dependencies + app) instead of four; still avoids
+rebuilding dependencies on app-only changes.

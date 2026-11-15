@@ -221,7 +221,7 @@ public class RestGitHubClient implements GitHubClient {
         HttpRequest.newBuilder(uri)
             .timeout(Duration.ofSeconds(30))
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "RepoLens/0.0.1")
+            .header("User-Agent", "RepoLens/0.1.0")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .GET();
     if (!properties.github().token().isBlank()) {

@@ -1,0 +1,67 @@
+name: repolens
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg17
+    environment:
+      POSTGRES_DB: ${DB_NAME:-repolens}
+      POSTGRES_USER: ${DB_USERNAME:-repolens}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-repolens} -d ${DB_NAME:-repolens}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    image: ${REPOLENS_IMAGE:?set REPOLENS_IMAGE, e.g. ghcr.io/owner/repolens:0.1.0}
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-repolens}
+      DB_USERNAME: ${DB_USERNAME:-repolens}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REPOLENS_API_KEY: ${REPOLENS_API_KEY:?set REPOLENS_API_KEY}
+      REPOLENS_API_KEY_REQUIRED: "true"
+      RATE_LIMIT_ENABLED: "true"
+      RATE_LIMIT_ASK_CAPACITY: ${RATE_LIMIT_ASK_CAPACITY:-10}
+      RATE_LIMIT_ASK_REFILL: ${RATE_LIMIT_ASK_REFILL:-0.5}
+      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      EMBEDDING_CACHE_DIR: /app/.cache/repolens-onnx
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - onnxdata:/app/.cache
+    read_only: true
+    tmpfs:
+      - /tmp:exec,size=512m
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  onnxdata:
+  caddydata:
+  caddyconfig:

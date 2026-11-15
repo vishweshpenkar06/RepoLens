@@ -18,6 +18,36 @@ services:
       timeout: 3s
       retries: 20
 
+  app:
+    build: .
+    image: repolens:local
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-repolens}
+      DB_USERNAME: ${DB_USERNAME:-repolens}
+      DB_PASSWORD: ${DB_PASSWORD:-repolens}
+      REPOLENS_API_KEY: ${REPOLENS_API_KEY:-demo-key-change-me}
+      REPOLENS_API_KEY_REQUIRED: ${REPOLENS_API_KEY_REQUIRED:-true}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      EMBEDDING_CACHE_DIR: /app/.cache/repolens-onnx
+      SERVER_PORT: 8081
+    ports:
+      - "${SERVER_PORT:-8081}:8081"
+    volumes:
+      - onnxdata:/app/.cache
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:exec,size=512m
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus:v3.16.0
     command:
@@ -51,3 +81,4 @@ volumes:
   pgdata:
   promdata:
   grafanadata:
+  onnxdata:

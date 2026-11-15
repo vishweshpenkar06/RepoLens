@@ -23,7 +23,7 @@ Start command (virtual threads):
 
 ```bash
 REPOLENS_API_KEY=loadtest-key RATE_LIMIT_ENABLED=false LLM_PROVIDER=fake \
-  java -jar target/repolens-0.0.1-SNAPSHOT.jar
+  java -jar target/repolens-0.1.0.jar
 ```
 
 k6 commands:

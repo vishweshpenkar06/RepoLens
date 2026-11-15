@@ -32,7 +32,7 @@ Claude Desktop launches the server as a child process. Logs must not go to stdou
     "repolens": {
       "command": "/ABSOLUTE/PATH/TO/java",
       "args": [
-        "-jar", "/ABSOLUTE/PATH/TO/repolens-0.0.1-SNAPSHOT.jar",
+        "-jar", "/ABSOLUTE/PATH/TO/repolens-0.1.0.jar",
         "--spring.main.web-application-type=none",
         "--spring.ai.mcp.server.stdio=true",
         "--logging.config=classpath:logback-stdio.xml"

@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.vishwesh</groupId>
 	<artifactId>repolens</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.1.0</version>
 	<name>repolens</name>
 	<description>Self-hosted RAG service and MCP server for GitHub documentation</description>
 

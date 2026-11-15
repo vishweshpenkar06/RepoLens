@@ -2,12 +2,12 @@
 
 ## Status
 
-Phase 5 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
-Markdown chunking, local ONNX embeddings, incremental re-index, hybrid retrieval (vector + FTS)
-fused with RRF, grounded `/ask` with citation verification and SSE streaming, prompt-injection
-defenses, answer/embedding caches, MCP tools over streamable HTTP and stdio, hashed API keys,
-request IDs, per-scope token-bucket rate limiting, Micrometer/Prometheus metrics, a Grafana
-dashboard, an evaluation harness, and k6 load tests. Phase 6 adds packaging and deployment.
+v0.1.0 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion, Markdown
+chunking, local ONNX embeddings, incremental re-index, hybrid retrieval (vector + FTS) fused with
+RRF, grounded `/ask` with citation verification and SSE streaming, prompt-injection defenses,
+answer/embedding caches, MCP tools over streamable HTTP and stdio, hashed API keys, request IDs,
+per-scope token-bucket rate limiting, Micrometer/Prometheus metrics, a Grafana dashboard, an
+evaluation harness, k6 load tests, and a production container/deploy stack.
 
 ## Context
 
@@ -112,6 +112,13 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
 - `eval/` harness: 52 cases, real retrieval metrics (hit@3/6, MRR), structural answer checks,
   chunk-size variants; reports in `eval/reports/`. Results in `docs/EVAL.md`.
 - k6 scripts in `load/`; numbers and interpretation in `docs/BENCHMARKS.md`.
+
+## Deployment
+
+`Dockerfile` builds a non-root, read-only-rootfs runtime image (ONNX cache on a volume, executable
+tmpfs at `/tmp`). CI publishes `ghcr.io/<repo>` on `main` and version tags. Production is
+`deploy/docker-compose.prod.yml`: Postgres+pgvector, app, Caddy for TLS; no public database or
+observability ports. Images are seeded with `deploy/seed.sh`.
 
 ## Database
 

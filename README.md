@@ -3,7 +3,8 @@
 Self-hosted Java service that ingests a GitHub repository's documentation and issues, then answers
 questions about it with verified citations via a REST API and an MCP server for AI assistants.
 
-> Status: Phase 5 (metrics, eval, load tests). Packaging and deployment land in Phase 6.
+> Status: v0.1.0 release candidate. Image, CI publish, deploy configs and docs are complete; the
+> public demo URL awaits a host/domain and an LLM provider key.
 > See `PROGRESS.md` and `MASTERPLAN.md`.
 
 ## Stack
@@ -17,12 +18,22 @@ Exact versions and rationale: `docs/DECISIONS.md`.
 
 Prerequisites: JDK 21+ (25 recommended), Docker with the compose plugin.
 
+Full stack (app + Postgres/pgvector + Prometheus + Grafana):
+
 ```bash
 cp .env.example .env
+# set REPOLENS_API_KEY in .env
 docker compose up -d
-./mvnw verify          # build, tests (Testcontainers), Spotless, JaCoCo
-./mvnw spring-boot:run # app on http://localhost:8081
 curl localhost:8081/actuator/health
+```
+
+Develop the app on the host against containerized Postgres:
+
+```bash
+cp .env.example .env
+docker compose up -d postgres
+./mvnw verify
+REPOLENS_API_KEY=$(grep ^REPOLENS_API_KEY .env | cut -d= -f2) ./mvnw spring-boot:run
 ```
 
 Local ports (non-default on purpose, see `docs/ENVIRONMENT.md`):
@@ -33,6 +44,23 @@ Local ports (non-default on purpose, see `docs/ENVIRONMENT.md`):
 | Postgres | `localhost:55432` (`repolens`/`repolens`) |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3001 (admin/admin) |
+
+## Architecture
+
+```mermaid
+flowchart LR
+  client[REST client] --> api[REST API /api/v1]
+  llm[AI assistant] --> mcp[MCP server<br/>HTTP /mcp + stdio]
+  api --> app[Application layer<br/>Ask / Search / Ingest]
+  mcp --> app
+  app --> gh[GitHub REST<br/>ETag, SSRF guard]
+  app --> ret[Hybrid retriever<br/>vector + FTS + RRF]
+  app --> llm2[LLM gateway<br/>OpenAI-compatible / fake]
+  app --> emb[ONNX embedder<br/>MiniLM 384d]
+  ret --> db[(PostgreSQL 17<br/>pgvector)]
+  gh --> db
+  emb --> db
+```
 
 ## Authentication
 
@@ -105,6 +133,13 @@ Ollama: `LLM_PROVIDER=ollama LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=ll
 Four tools are exposed over streamable HTTP (`/mcp`) and stdio. See `docs/MCP_SETUP.md` for the
 Claude Desktop config and a generic client example. HTTP requests need `X-API-Key`.
 
+## Demo and deploy
+
+- Reproducible terminal demo: `./scripts/demo.sh` (see `docs/DEMO.md`).
+- Deployment: `deploy/docker-compose.prod.yml` + Caddy on a small VPS (`deploy/README.md`);
+  GHCR publishing is wired in CI on `main` and version tags.
+- Claude Desktop / MCP clients: `docs/MCP_SETUP.md`.
+
 ## Documentation
 
 - `docs/ARCHITECTURE.md` — components, data flow, failure modes
@@ -135,6 +170,21 @@ Evaluation: 52 cases over `encode/httpx` and `Kludex/starlette` plus an injectio
 Answer-quality metrics with a real model are pending a provider key; the harness and structural
 checks are in place.
 
+## Limitations
+
+- Answer quality and real-provider prompt-injection resistance are unmeasured until an API key is
+  configured; retrieval metrics are real, answer metrics are structural (see `docs/EVAL.md`).
+- Rate limiting and caches are per node; Redis is the stretch goal for multi-node.
+- Issue ingestion is capped at 300; `get_document` is capped at 20,000 characters.
+- Benchmarks are single runs on a shared desktop; see `docs/BENCHMARKS.md`.
+- The six human checkpoints were delegated to the agent (ADR-0016); do not present them as
+  human-written without review.
+
+## Roadmap
+
+Cross-encoder reranker measured in eval; Redis-backed limiter/cache; GitHub webhook re-index; a
+single static chat page (SSE); GraalVM native image; OpenTelemetry traces. See `docs/BACKLOG.md`.
+
 ## License
 
-TBD (MIT or Apache-2.0) in Phase 6.
+MIT — see [LICENSE](LICENSE).

@@ -90,8 +90,21 @@ delegation (ADR-0016); do not present it as human-written without review.
 **Checkpoint provenance:** CHECKPOINT 4 (eval cases) and CHECKPOINT 5 (benchmark interpretation) are
 agent-written under the owner's delegation (ADR-0016). Review before quoting as human work.
 
-**Next:** Phase 6 (production Dockerfile, GHCR publish, deploy, README/demo polish; delegated
-CHECKPOINT 6).
+## Phase 6 — Ship (in progress: packaging complete, deploy/demo pending owner)
+
+- Version bumped to `0.1.0`; production Dockerfile: multi-stage, JRE 25, non-root uid 1001,
+  read-only rootfs, no-new-privileges, healthcheck, ONNX cache volume, layered `jar + lib/` cache.
+- `docker compose up --build` runs app + Postgres/pgvector + Prometheus + Grafana; app verified
+  healthy in-container, `uid=1001(app)`, read-only rootfs, API key enforced (401/200).
+- CI: tests + gitleaks + Docker build; GHCR publish on `main` and `v*` tags; non-root smoke check;
+  Dependabot for Maven/Actions/Docker.
+- Deploy: `deploy/docker-compose.prod.yml` (no public DB/observability ports), Caddy TLS config,
+  seed script and demo-key instructions in `deploy/README.md`.
+- Docs: README architecture diagram/results/limitations/roadmap, `docs/DEMO.md` + `scripts/demo.sh`,
+  `SECURITY.md`, `CONTRIBUTING.md`, MIT `LICENSE`, `RELEASE_NOTES.md`.
+- **Pending owner:** host/domain + LLM key for the public demo, demo GIF (checkpoint 6 recording),
+  and GitHub repo/push/release `v0.1.0` (no git remote configured).
+- CHECKPOINT 6 results/demo prose is agent-written under the delegation; the video is not.
 
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
