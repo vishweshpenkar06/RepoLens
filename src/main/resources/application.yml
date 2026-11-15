@@ -11,6 +11,20 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  ai:
+    model:
+      embedding: ${EMBEDDING_PROVIDER:transformers}
+    embedding:
+      transformer:
+        onnx:
+          model-uri: ${EMBEDDING_MODEL_URI:https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/resolve/main/onnx/model.onnx}
+          model-output-name: last_hidden_state
+        tokenizer:
+          uri: ${EMBEDDING_TOKENIZER_URI:https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2/raw/main/tokenizer.json}
+          options:
+            padding: true
+        cache:
+          directory: ${EMBEDDING_CACHE_DIR:${java.io.tmpdir}/repolens-onnx}
 
 server:
   port: ${SERVER_PORT:8081}
@@ -31,7 +45,7 @@ management:
       show-details: never
   health:
     readiness:
-      include: db
+      include: db,embedder
   prometheus:
     metrics:
       export:
@@ -46,9 +60,14 @@ repolens:
   github:
     token: ${GITHUB_TOKEN:}
     base-url: https://api.github.com
+    issues-enabled: ${GITHUB_ISSUES_ENABLED:true}
+    issue-limit: 300
+    max-file-bytes: 1048576
   embedding:
     concurrency: 2
     batch-size: 32
+    dimensions: 384
+    warmup: true
   retrieval:
     candidates: 30
     top-k: 6

@@ -3,7 +3,7 @@
 Self-hosted Java service that ingests a GitHub repository's documentation and issues, then answers
 questions about it with verified citations via a REST API and an MCP server for AI assistants.
 
-> Status: Phase 0 (foundations). Ingestion, retrieval, answering, and MCP land phase by phase.
+> Status: Phase 1 (ingestion). Retrieval, answering, and MCP land phase by phase.
 > See `PROGRESS.md` and `MASTERPLAN.md`.
 
 ## Stack
@@ -33,6 +33,25 @@ Local ports (non-default on purpose, see `docs/ENVIRONMENT.md`):
 | Postgres | `localhost:55432` (`repolens`/`repolens`) |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3001 (admin/admin) |
+
+## Try ingestion
+
+```bash
+# Register a repo (async). Returns 202 with repoId + jobId.
+curl -s -X POST localhost:8081/api/v1/repos \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://github.com/octocat/Hello-World"}'
+
+curl -s localhost:8081/api/v1/repos/1        # status + latest job
+curl -s localhost:8081/api/v1/repos         # all repos
+
+# Incremental re-index (ETag + content hash; unchanged docs are not re-embedded)
+curl -s -X POST localhost:8081/api/v1/repos/1/reindex
+```
+
+Only `https://github.com/{owner}/{name}` is accepted. Ingestion covers the README, top-level
+markdown, `docs/**/*.md`, and up to 300 issues (`GITHUB_ISSUES_ENABLED=false` to disable).
+Embeddings are local ONNX (384 dims); the first run downloads the model (~90 MB) and caches it.
 
 ## Documentation
 

@@ -2,8 +2,9 @@
 
 ## Status
 
-Phase 0 complete: skeleton, configuration, database schema, local observability stack.
-Later phases fill in ingestion, retrieval, answering, MCP, security, and evaluation.
+Phase 1 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
+Markdown chunking, local ONNX embeddings, incremental re-index. Later phases add retrieval,
+answering, MCP, security, and evaluation.
 
 ## Context
 
@@ -49,6 +50,19 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
 5. Build prompt with numbered, delimited context blocks; call the LLM with structured output.
 6. Verify citations; refuse if evidence is insufficient.
 7. Record metrics and query log; return answer, citations, `refused`, `latencyMs`, `cached`.
+
+## Ingestion pipeline (implemented)
+
+1. `SsrfGuard` validates the URL and resolves `github.com` to a public address.
+2. `RestGitHubClient` fetches repo metadata, the recursive tree, README/top-level/docs markdown
+   (ETag-aware), and up to 300 issues (pull requests filtered out).
+3. `MarkdownChunker` splits on headings, keeps `heading_path`, preserves tables and fenced code
+   blocks, and targets 500 tokens with ~12% overlap (hard max 800).
+4. Changed documents run on virtual threads; embeddings are batched and bounded by a semaphore
+   (ONNX is CPU-bound).
+5. Each document is written in its own transaction (upsert document, replace chunks). Removed
+   documents are deleted (chunks cascade). `content_version` is a hash of all document hashes.
+6. Job and repository status are updated; failures mark both `FAILED` with the error message.
 
 ## Database
 

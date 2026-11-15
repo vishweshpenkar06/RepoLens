@@ -10,6 +10,20 @@
 - GitHub Actions CI: build + tests + Testcontainers + coverage artifact.
 - Docs skeleton: README, ARCHITECTURE, DECISIONS, BACKLOG, ENVIRONMENT.
 
-**Next:** HUMAN CHECKPOINT 1 (design write-up), then Phase 1 ingestion.
+## Phase 1 — Ingestion (complete)
 
-**Known issues:** none.
+- `RestGitHubClient`: tree/contents/issues, ETag 304, rate-limit backoff, optional token, no redirects.
+- `SsrfGuard`: github.com only, public-IP resolution, rejects credentials/ports/query/fragment.
+- `MarkdownChunker`: heading paths, code fences, tables, badge/HTML cleanup, 500/800/12% rules.
+- `OnnxEmbedder`: local all-MiniLM-L6-v2 (384 dims), startup warmup, readiness indicator.
+- `IngestionService` + virtual-thread job runner: batched embeddings with semaphore, transactional
+  per-document writes, incremental re-ingest, deletion of removed docs, content version.
+- REST: `POST /api/v1/repos`, `GET /api/v1/repos`, `GET /api/v1/repos/{id}`,
+  `POST /api/v1/repos/{id}/reindex`; RFC 7807 errors.
+- 83 tests; chunker line coverage 98.5%. Real run: `octocat/Hello-World` (301 docs: README + 300
+  issues, 319 chunks, 384 dims); re-index wrote 0 chunks in ~0.7 s.
+
+**Next:** Phase 2 retrieval, including HUMAN CHECKPOINT 2 (RRF stub/tests for the human).
+
+**Known issues:** HUMAN CHECKPOINT 1 sections in `docs/ARCHITECTURE.md` are still human-owned TODOs.
+Issue ingestion is capped at 300 by design.

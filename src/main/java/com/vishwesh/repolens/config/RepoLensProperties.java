@@ -16,12 +16,17 @@ public record RepoLensProperties(
     @DefaultValue Ask ask) {
 
   public record Github(
-      @DefaultValue("") String token, @DefaultValue("https://api.github.com") String baseUrl) {}
+      @DefaultValue("") String token,
+      @DefaultValue("https://api.github.com") String baseUrl,
+      @DefaultValue("true") boolean issuesEnabled,
+      @DefaultValue("300") int issueLimit,
+      @DefaultValue("1048576") int maxFileBytes) {}
 
   public record Embedding(
       @DefaultValue("2") int concurrency,
       @DefaultValue("32") int batchSize,
-      @DefaultValue("384") int dimensions) {}
+      @DefaultValue("384") int dimensions,
+      @DefaultValue("true") boolean warmup) {}
 
   public record Retrieval(
       @DefaultValue("30") int candidates,

@@ -3,6 +3,7 @@ package com.vishwesh.repolens.db;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.vishwesh.repolens.TestcontainersConfiguration;
+import com.vishwesh.repolens.support.TestFakes;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,8 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
+@SpringBootTest(properties = {"spring.ai.model.embedding=none", "repolens.embedding.warmup=false"})
+@Import({TestcontainersConfiguration.class, TestFakes.class})
 class DatabaseMigrationTests {
 
   @Autowired private JdbcClient jdbcClient;
