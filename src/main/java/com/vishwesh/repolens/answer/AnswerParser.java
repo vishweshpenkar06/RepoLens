@@ -33,7 +33,7 @@ public class AnswerParser {
     if (json == null || !json.isObject()) {
       return new ParsedAnswer(text, List.of(), false);
     }
-    String answer = json.path("answer").asText(text).strip();
+    String answer = json.path("answer").asText("").strip();
     boolean refused = json.path("refused").asBoolean(false);
     List<Integer> citations = new ArrayList<>();
     JsonNode citationsNode = json.path("citations");
@@ -44,7 +44,7 @@ public class AnswerParser {
         }
       }
     }
-    return new ParsedAnswer(answer.isEmpty() ? text : answer, citations, refused);
+    return new ParsedAnswer(answer, citations, refused);
   }
 
   private JsonNode tryParse(String text) {

@@ -64,8 +64,9 @@ Chunk variants all reached 92.5% hit@6 (300: 898 chunks, 500: 819, 800: 792). Fu
 
 ## Limitations
 
-- Answer quality is not measured against a real model until a provider key is configured; the fake
-  model deliberately returns a fixed grounded answer. Run the same harness with
-  `LLM_PROVIDER=openai`, `LLM_API_KEY`, `LLM_MODEL` to collect real citation/refusal numbers.
+- Answer quality is not systematically measured against a real model yet; the fake model
+  deliberately returns a fixed grounded answer. A live smoke test with Groq
+  `openai/gpt-oss-120b` produced grounded citations and a correct refusal; running the full case set
+  against a real provider is the next step.
 - 52 cases is enough to compare retrieval modes but not a statistically strong benchmark.
 - Expected sources are curated by the agent; a human should audit them before quoting the numbers.

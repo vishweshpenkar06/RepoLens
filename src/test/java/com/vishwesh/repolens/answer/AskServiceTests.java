@@ -95,6 +95,17 @@ class AskServiceTests {
   }
 
   @Test
+  void returnsRefusalTextWhenModelRefusesWithEmptyAnswer() {
+    llm.enqueueCompletion("{\"answer\":\"\",\"citations\":[],\"refused\":true}");
+
+    AnswerResult result = askService.ask(1, "docker compose", null);
+
+    assertThat(result.refused()).isTrue();
+    assertThat(result.answer()).isEqualTo(CitationVerifier.REFUSAL_ANSWER);
+    assertThat(result.citations()).isEmpty();
+  }
+
+  @Test
   void refusesWhenAllCitationsAreInvalid() {
     llm.enqueueCompletion("{\"answer\":\"Bold claim [99]\",\"citations\":[99],\"refused\":false}");
 

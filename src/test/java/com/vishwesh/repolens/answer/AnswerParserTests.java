@@ -50,6 +50,14 @@ class AnswerParserTests {
   }
 
   @Test
+  void keepsEmptyAnswerEmptyInsteadOfReturningRawJson() {
+    ParsedAnswer parsed = parser.parse("{\"answer\":\"\",\"citations\":[],\"refused\":true}");
+
+    assertThat(parsed.answer()).isEmpty();
+    assertThat(parsed.refused()).isTrue();
+  }
+
+  @Test
   void treatsBlankOutputAsRefusal() {
     ParsedAnswer parsed = parser.parse("   ");
     assertThat(parsed.refused()).isTrue();

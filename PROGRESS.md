@@ -119,6 +119,11 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
 - Runtime-verified: Prometheus scrapes both compose and host targets (`up`), Grafana has the
   10-panel RepoLens Overview dashboard, container logs include request IDs.
 - New tests: build-info, Prometheus endpoint, rate-limit rejection counter, MCP document truncation.
+- Configured and smoke-tested a real Groq provider (`openai/gpt-oss-120b`) via `.env` (never
+  committed): grounded install answer with citations (~1.9 s) and a correct refusal.
+- Fixed a real-provider bug found during that test: a refusal with an empty `answer` field returned
+  the raw JSON as the answer text; the parser now keeps it empty and the verifier returns the
+  standard refusal sentence. Covered by parser and ask-service tests.
 
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
