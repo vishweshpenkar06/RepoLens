@@ -35,5 +35,4 @@ build/
 ### RepoLens ###
 .env
 *.log
-eval/reports/
 load/results/

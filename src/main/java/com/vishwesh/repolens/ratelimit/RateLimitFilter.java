@@ -1,5 +1,6 @@
 package com.vishwesh.repolens.ratelimit;
 
+import com.vishwesh.repolens.observability.RepoLensMetrics;
 import com.vishwesh.repolens.security.ApiKeyFilter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,10 +23,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
   private final RateLimitService rateLimitService;
   private final JsonMapper objectMapper;
+  private final RepoLensMetrics metrics;
 
-  public RateLimitFilter(RateLimitService rateLimitService, JsonMapper objectMapper) {
+  public RateLimitFilter(
+      RateLimitService rateLimitService, JsonMapper objectMapper, RepoLensMetrics metrics) {
     this.rateLimitService = rateLimitService;
     this.objectMapper = objectMapper;
+    this.metrics = metrics;
   }
 
   @Override
@@ -55,6 +59,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     response.setHeader("RateLimit-Scope", scope.name());
 
     if (!allowed) {
+      metrics.rateLimitRejected(scope.name());
       response.setStatus(429);
       response.setHeader("Retry-After", Long.toString(Math.max(1, retryAfter)));
       response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);

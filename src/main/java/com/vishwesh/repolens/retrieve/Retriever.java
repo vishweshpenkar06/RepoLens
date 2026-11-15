@@ -2,6 +2,7 @@ package com.vishwesh.repolens.retrieve;
 
 import com.vishwesh.repolens.config.RepoLensProperties;
 import com.vishwesh.repolens.embed.Embedder;
+import com.vishwesh.repolens.observability.RepoLensMetrics;
 import jakarta.annotation.PreDestroy;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -23,6 +24,7 @@ public class Retriever {
   private final RankFusion rankFusion;
   private final Embedder embedder;
   private final RepoLensProperties properties;
+  private final RepoLensMetrics metrics;
   private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
   public Retriever(
@@ -30,12 +32,14 @@ public class Retriever {
       KeywordSearch keywordSearch,
       RankFusion rankFusion,
       Embedder embedder,
-      RepoLensProperties properties) {
+      RepoLensProperties properties,
+      RepoLensMetrics metrics) {
     this.vectorSearch = vectorSearch;
     this.keywordSearch = keywordSearch;
     this.rankFusion = rankFusion;
     this.embedder = embedder;
     this.properties = properties;
+    this.metrics = metrics;
   }
 
   public List<FusedHit> retrieve(long repositoryId, String query, int requestedLimit) {
@@ -44,14 +48,19 @@ public class Retriever {
     float[] embedding = embedder.embed(query);
 
     Future<List<ScoredChunk>> vector =
-        executor.submit(() -> vectorSearch.search(repositoryId, embedding, candidates));
+        executor.submit(() ->
+            metrics.timeRetrieval(
+                "vector", () -> vectorSearch.search(repositoryId, embedding, candidates)));
     Future<List<ScoredChunk>> keyword =
-        executor.submit(() -> keywordSearch.search(repositoryId, query, candidates));
+        executor.submit(() ->
+            metrics.timeRetrieval(
+                "keyword", () -> keywordSearch.search(repositoryId, query, candidates)));
 
     try {
       List<ScoredChunk> vectorResults = vector.get(STAGE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
       List<ScoredChunk> keywordResults = keyword.get(STAGE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-      return rankFusion.fuse(vectorResults, keywordResults, limit);
+      return metrics.timeRetrieval(
+          "fuse", () -> rankFusion.fuse(vectorResults, keywordResults, limit));
     } catch (TimeoutException e) {
       vector.cancel(true);
       keyword.cancel(true);

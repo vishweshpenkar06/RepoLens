@@ -4,6 +4,7 @@ import com.vishwesh.repolens.api.RepositoryNotFoundException;
 import com.vishwesh.repolens.config.RepoLensProperties;
 import com.vishwesh.repolens.ingest.RepositoryRow;
 import com.vishwesh.repolens.ingest.store.RepositoryStore;
+import com.vishwesh.repolens.observability.RepoLensMetrics;
 import com.vishwesh.repolens.retrieve.FusedHit;
 import com.vishwesh.repolens.retrieve.Retriever;
 import java.util.List;
@@ -32,6 +33,7 @@ public class AskService {
   private final AskCache cache;
   private final QueryLogStore queryLog;
   private final RepoLensProperties properties;
+  private final RepoLensMetrics metrics;
 
   public AskService(
       RepositoryStore repositories,
@@ -42,7 +44,8 @@ public class AskService {
       CitationVerifier citationVerifier,
       AskCache cache,
       QueryLogStore queryLog,
-      RepoLensProperties properties) {
+      RepoLensProperties properties,
+      RepoLensMetrics metrics) {
     this.repositories = repositories;
     this.retriever = retriever;
     this.promptBuilder = promptBuilder;
@@ -52,6 +55,7 @@ public class AskService {
     this.cache = cache;
     this.queryLog = queryLog;
     this.properties = properties;
+    this.metrics = metrics;
   }
 
   public AnswerResult ask(long repositoryId, String question, Integer requestedTopK) {
@@ -63,10 +67,13 @@ public class AskService {
 
     Optional<CachedAnswer> cached = cache.get(cacheKey);
     if (cached.isPresent()) {
+      metrics.cacheHit();
       long latency = elapsedMillis(started);
+      metrics.recordAsk(java.time.Duration.ofMillis(latency), true, cached.get().refused());
       record(repository.id(), normalized, List.of(), latency, true, cached.get().refused());
       return result(cached.get(), latency, true);
     }
+    metrics.cacheMiss();
 
     List<FusedHit> hits = retriever.retrieve(repository.id(), normalized, topK);
     VerifiedAnswer verified;
@@ -74,7 +81,7 @@ public class AskService {
       verified = citationVerifier.refusal();
     } else {
       LlmRequest request = promptBuilder.build(normalized, hits);
-      ParsedAnswer parsed = answerParser.parse(llmGateway.complete(request));
+      ParsedAnswer parsed = answerParser.parse(metrics.timeLlm(() -> llmGateway.complete(request)));
       verified = citationVerifier.verify(parsed, hits);
     }
 
@@ -82,6 +89,7 @@ public class AskService {
         new CachedAnswer(verified.answer(), verified.citations(), verified.refused());
     cache.put(cacheKey, payload);
     long latency = elapsedMillis(started);
+    metrics.recordAsk(java.time.Duration.ofMillis(latency), false, verified.refused());
     record(repository.id(), normalized, chunkIds(hits), latency, false, verified.refused());
     return result(payload, latency, false);
   }
@@ -100,8 +108,10 @@ public class AskService {
 
     Optional<CachedAnswer> cached = cache.get(cacheKey);
     if (cached.isPresent()) {
+      metrics.cacheHit();
       emitTokens(cached.get().answer(), onToken);
       long latency = elapsedMillis(started);
+      metrics.recordAsk(java.time.Duration.ofMillis(latency), true, cached.get().refused());
       record(repository.id(), normalized, List.of(), latency, true, cached.get().refused());
       onComplete.accept(result(cached.get(), latency, true));
       return;
@@ -109,28 +119,39 @@ public class AskService {
 
     List<FusedHit> hits = retriever.retrieve(repository.id(), normalized, topK);
     if (hits.isEmpty()) {
+      metrics.cacheMiss();
       VerifiedAnswer refusal = citationVerifier.refusal();
       emitTokens(refusal.answer(), onToken);
       long latency = elapsedMillis(started);
+      metrics.recordAsk(java.time.Duration.ofMillis(latency), false, true);
       record(repository.id(), normalized, List.of(), latency, false, true);
       onComplete.accept(
           new AnswerResult(refusal.answer(), refusal.citations(), true, latency, false));
       return;
     }
+    metrics.cacheMiss();
 
     StringBuilder raw = new StringBuilder();
     LlmRequest request = promptBuilder.buildStreaming(normalized, hits);
-    llmGateway.stream(
-        request,
-        token -> {
-          raw.append(token);
-          onToken.accept(token);
-        });
+    long llmStart = System.nanoTime();
+    try {
+      llmGateway.stream(
+          request,
+          token -> {
+            raw.append(token);
+            onToken.accept(token);
+          });
+    } catch (RuntimeException e) {
+      metrics.llmError();
+      throw e;
+    }
+    metrics.recordRetrieval("llm-stream", java.time.Duration.ofNanos(System.nanoTime() - llmStart));
     VerifiedAnswer verified = citationVerifier.verifyStreaming(raw.toString(), hits);
     CachedAnswer payload =
         new CachedAnswer(verified.answer(), verified.citations(), verified.refused());
     cache.put(cacheKey, payload);
     long latency = elapsedMillis(started);
+    metrics.recordAsk(java.time.Duration.ofMillis(latency), false, verified.refused());
     record(repository.id(), normalized, chunkIds(hits), latency, false, verified.refused());
     onComplete.accept(
         new AnswerResult(

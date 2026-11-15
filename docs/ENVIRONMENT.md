@@ -24,7 +24,7 @@ Verified: 2026-11-15
 | Docker Compose | yes | v5.7.1 | v2+ | PASS |
 | Docker daemon | yes | active, `hello-world` verified | running | PASS |
 | Maven | no global install | via Maven Wrapper (`./mvnw`) | wrapper only | PASS (by design) |
-| k6 | no | — | Phase 5 only | DEFERRED (install in Phase 5; not in distro repos, use official k6 repo/binary) |
+| k6 | yes | v2.4.0 (user-local `~/.local/bin/k6`) | Phase 5 | PASS (installed from the official release tarball, no sudo) |
 | GitHub CLI | yes | 2.97.0, authenticated as `vishweshpenkar06` | optional | PASS |
 
 ## Manual steps performed by the human

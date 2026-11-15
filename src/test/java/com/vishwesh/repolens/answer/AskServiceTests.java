@@ -14,6 +14,8 @@ import com.vishwesh.repolens.ingest.store.DocumentStore;
 import com.vishwesh.repolens.ingest.store.RepositoryStore;
 import com.vishwesh.repolens.support.FakeEmbedder;
 import com.vishwesh.repolens.support.TestFakes;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ class AskServiceTests {
   @Autowired private DocumentStore documents;
   @Autowired private ChunkStore chunks;
   @Autowired private JdbcClient jdbc;
+  @Autowired private MeterRegistry meterRegistry;
 
   @BeforeEach
   void reset() {
@@ -139,6 +142,27 @@ class AskServiceTests {
   void failsForUnknownRepository() {
     assertThatThrownBy(() -> askService.ask(999, "docker", null))
         .isInstanceOf(RepositoryNotFoundException.class);
+  }
+
+  @Test
+  void recordsAskAndCacheMetrics() {
+    double missesBefore = meterRegistry.get("repolens.cache.misses").counter().count();
+    double hitsBefore = meterRegistry.get("repolens.cache.hits").counter().count();
+    double timersBefore =
+        meterRegistry.find("repolens.ask.latency").timers().stream().mapToLong(Timer::count).sum();
+
+    askService.ask(1, "docker compose", null);
+    askService.ask(1, "docker compose", null);
+
+    assertThat(meterRegistry.get("repolens.cache.misses").counter().count())
+        .isEqualTo(missesBefore + 1);
+    assertThat(meterRegistry.get("repolens.cache.hits").counter().count())
+        .isEqualTo(hitsBefore + 1);
+    assertThat(
+            meterRegistry.find("repolens.ask.latency").timers().stream()
+                .mapToLong(Timer::count)
+                .sum())
+        .isEqualTo((long) timersBefore + 2);
   }
 
   @Test

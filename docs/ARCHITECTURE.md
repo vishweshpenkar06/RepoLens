@@ -2,12 +2,12 @@
 
 ## Status
 
-Phase 4 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
+Phase 5 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
 Markdown chunking, local ONNX embeddings, incremental re-index, hybrid retrieval (vector + FTS)
 fused with RRF, grounded `/ask` with citation verification and SSE streaming, prompt-injection
 defenses, answer/embedding caches, MCP tools over streamable HTTP and stdio, hashed API keys,
-request IDs, and per-scope token-bucket rate limiting. Later phases add observability,
-evaluation, and deployment.
+request IDs, per-scope token-bucket rate limiting, Micrometer/Prometheus metrics, a Grafana
+dashboard, an evaluation harness, and k6 load tests. Phase 6 adds packaging and deployment.
 
 ## Context
 
@@ -101,6 +101,17 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
   revocation, fail-closed; actuator exempt.
 - `RateLimitFilter`: per-key (IP fallback) token buckets with separate ask/search/general scopes,
   `RateLimit-*` headers and RFC 7807 429 with `Retry-After`.
+
+## Observability and evaluation (implemented)
+
+- Micrometer timers/counters: ask latency (cached/refused tags), retrieval latency per stage,
+  LLM latency/errors, cache hits/misses, rate-limit rejections, ingest docs/chunks/duration.
+  Prometheus endpoint: `/actuator/prometheus`; histograms enabled for p50/p95/p99.
+- Grafana dashboard `deploy/grafana/dashboards/repolens.json` plotted against the provisioned
+  Prometheus datasource.
+- `eval/` harness: 52 cases, real retrieval metrics (hit@3/6, MRR), structural answer checks,
+  chunk-size variants; reports in `eval/reports/`. Results in `docs/EVAL.md`.
+- k6 scripts in `load/`; numbers and interpretation in `docs/BENCHMARKS.md`.
 
 ## Database
 

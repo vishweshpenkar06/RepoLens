@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.vishwesh.repolens.config.RepoLensProperties;
 import com.vishwesh.repolens.ingest.DocumentKind;
+import com.vishwesh.repolens.observability.RepoLensMetrics;
 import com.vishwesh.repolens.support.FakeEmbedder;
 import java.time.Duration;
 import java.util.List;
@@ -23,7 +24,12 @@ class RetrieverTests {
   private final RepoLensProperties properties = properties();
   private final Retriever retriever =
       new Retriever(
-          vectorSearch, keywordSearch, new RankFusion(properties), new FakeEmbedder(), properties);
+          vectorSearch,
+          keywordSearch,
+          new RankFusion(properties),
+          new FakeEmbedder(),
+          properties,
+          new RepoLensMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
 
   @Test
   void fusesParallelRetrieverResults() {

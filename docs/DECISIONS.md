@@ -264,3 +264,37 @@ chunks would duplicate text and lose fidelity. Storage is bounded by the existin
 ingest cap.
 **Tradeoff:** duplicate storage (document text plus chunks). Acceptable at this scale; a future
 optimization can drop the column and reconstruct from chunks if storage matters.
+
+## ADR-0024: Micrometer naming and Prometheus histograms
+
+**Decision:** metric names use Micrometer dot notation (`repolens.ask.latency`, `repolens.retrieval.latency`,
+`repolens.cache.hits`, `repolens.ratelimit.rejected`, `repolens.ingest.*`); Prometheus exposes them
+with `_seconds`/`_total` suffixes. Histograms are enabled for ask, retrieval, LLM and ingest timers via
+`management.metrics.distribution.percentiles-histogram`.
+**Why:** histogram buckets are required for `histogram_quantile` in Grafana; summaries only export
+count/sum/max and cannot produce p95/p99.
+**Tradeoff:** more Prometheus series (per tag set); acceptable at this scale.
+
+## ADR-0025: Evaluation methodology and fake-LLM limitation
+
+**Decision:** 52 cases over two real repos plus a synthetic injection fixture; retrieval metrics are
+real (ONNX embeddings, pgvector, Postgres FTS), while answer metrics are structural using the fake
+LLM. Chunk-size variants rebuild chunks from stored document text. Reports are committed under
+`eval/reports/`.
+**Why:** retrieval quality can be measured without a paid key; the plan requires hit@k/MRR and a
+mode comparison. The fake model cannot measure real groundedness, so it is clearly labelled.
+**Tradeoff:** citation validity/refusal/injection numbers are plumbing checks, not model quality,
+until a real provider is configured. Provenance: CHECKPOINT 4 (case curation) was delegated to the
+agent.
+
+## ADR-0026: Load-test methodology and the virtual-thread result
+
+**Decision:** k6 scripts for search (200 VUs), stubbed ask (fake LLM 300 ms), and a small real-ask
+sanity run. Benchmarks compare virtual vs platform threads, cache on/off, retrieval stages and
+ingestion concurrency. Numbers and interpretation live in `docs/BENCHMARKS.md`.
+**Why:** the plan requires measured numbers, including the honest virtual-thread finding.
+**Finding:** for DB-bound search, virtual threads gave no throughput gain (273.5 vs 278.5 req/s,
+within noise); caching was the dominant lever for `/ask` (808 vs 53 req/s), and embedding concurrency
+2→8 improved ingestion only ~7% because GitHub fetch dominates.
+**Tradeoff:** single runs on a shared desktop; treat ±10% as noise. Provenance: CHECKPOINT 5 was
+delegated to the agent.

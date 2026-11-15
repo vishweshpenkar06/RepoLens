@@ -57,6 +57,16 @@ management:
     metrics:
       export:
         enabled: true
+  metrics:
+    distribution:
+      percentiles-histogram:
+        "[repolens.ask.latency]": true
+        "[repolens.retrieval.latency]": true
+        "[repolens.llm.latency]": true
+        "[repolens.ingest.duration]": true
+      percentiles:
+        "[repolens.ask.latency]": 0.5,0.95,0.99
+        "[repolens.retrieval.latency]": 0.5,0.95,0.99
 
 logging:
   structured:

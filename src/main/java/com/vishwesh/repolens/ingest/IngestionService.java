@@ -7,6 +7,7 @@ import com.vishwesh.repolens.ingest.store.ChunkStore;
 import com.vishwesh.repolens.ingest.store.DocumentStore;
 import com.vishwesh.repolens.ingest.store.JobStore;
 import com.vishwesh.repolens.ingest.store.RepositoryStore;
+import com.vishwesh.repolens.observability.RepoLensMetrics;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -43,6 +44,7 @@ public class IngestionService {
   private final MarkdownChunker chunker;
   private final Embedder embedder;
   private final RepoLensProperties properties;
+  private final RepoLensMetrics metrics;
   private final TransactionTemplate transactions;
 
   public IngestionService(
@@ -54,6 +56,7 @@ public class IngestionService {
       MarkdownChunker chunker,
       Embedder embedder,
       RepoLensProperties properties,
+      RepoLensMetrics metrics,
       PlatformTransactionManager transactionManager) {
     this.repositories = repositories;
     this.documents = documents;
@@ -63,6 +66,7 @@ public class IngestionService {
     this.chunker = chunker;
     this.embedder = embedder;
     this.properties = properties;
+    this.metrics = metrics;
     this.transactions = new TransactionTemplate(transactionManager);
   }
 
@@ -72,8 +76,13 @@ public class IngestionService {
             .findById(repositoryId)
             .orElseThrow(() -> new IllegalArgumentException("Repository " + repositoryId));
     repositories.updateStatus(repositoryId, "INGESTING");
+    long started = System.nanoTime();
     try {
       IngestionResult result = doIngest(repository);
+      metrics.recordIngest(
+          result.documentsSeen(),
+          result.chunksWritten(),
+          java.time.Duration.ofNanos(System.nanoTime() - started));
       jobs.succeed(jobId, result.documentsSeen(), result.chunksWritten());
       log.info(
           "Ingested {}: {} documents, {} chunks",

@@ -73,13 +73,30 @@ present them as human-written unless the owner reviews and can explain them.
 **Checkpoint provenance:** HUMAN CHECKPOINT 3 (token bucket) is agent-written under the owner's
 delegation (ADR-0016); do not present it as human-written without review.
 
-**Next:** Phase 5 (metrics, Grafana dashboard, eval harness + delegated CHECKPOINT 4, k6 + delegated
-CHECKPOINT 5).
+## Phase 5 — Observability, evaluation, load (complete)
+
+- Micrometer metrics for ask/retrieval/LLM/cache/rate-limit/ingest with histograms; Prometheus
+  scrape works; Grafana dashboard committed under `deploy/grafana/dashboards/`.
+- Evaluation harness (`./mvnw -Peval verify`): 52 cases over `encode/httpx`, `Kludex/starlette`,
+  and an injection fixture; real retrieval metrics and structural answer checks. Result:
+  hybrid hit@6 92.5% vs vector-only 85.0%; report in `eval/reports/2026-11-15.md` and `docs/EVAL.md`.
+- k6 v2.4.0 installed user-local; `load/search.js`, `ask_stubbed.js`, `ask_real.js`.
+- Benchmarks in `docs/BENCHMARKS.md`: 200-VU search ~274 req/s at p95 664–804 ms; cache hit path
+  808 req/s vs 53 req/s uncached (fake LLM 300 ms); retrieval vector p95 156.6 ms, keyword 134.2 ms,
+  fuse ≤1 ms; ingestion 12.03 s at concurrency 2 vs 11.15 s at 8.
+- **Virtual threads did not improve DB-bound search** (within noise); recorded honestly.
+- 179 tests in the default build (eval test excluded); coverage gates pass.
+
+**Checkpoint provenance:** CHECKPOINT 4 (eval cases) and CHECKPOINT 5 (benchmark interpretation) are
+agent-written under the owner's delegation (ADR-0016). Review before quoting as human work.
+
+**Next:** Phase 6 (production Dockerfile, GHCR publish, deploy, README/demo polish; delegated
+CHECKPOINT 6).
 
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns
-  semantic candidates; the eval set must account for this.
-- Real-provider behavior (including injection resistance) is unverified until a key is provided;
-  eval will cover it.
+  semantic candidates; the eval set accounts for this.
+- Real-provider answer quality (including injection resistance) is unverified until a key is provided.
 - Rate limiting is per node (in-process Caffeine bucket registry); Redis is a stretch goal.
+- Benchmarks are single runs on a shared desktop; ±10% is noise.

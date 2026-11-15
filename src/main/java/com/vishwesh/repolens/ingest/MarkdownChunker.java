@@ -9,8 +9,8 @@ import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
 /**
- * Splits markdown into chunks of roughly {@value #TARGET_TOKENS} tokens (hard max {@value
- * #MAX_TOKENS}), preserving heading paths, tables and fenced code blocks where possible.
+ * Splits markdown into chunks of roughly {@code targetTokens} tokens (hard max {@code maxTokens}),
+ * preserving heading paths, tables and fenced code blocks where possible.
  *
  * <p>Token counts are estimates: {@code ceil(characters / 4)}, which is close enough for the MiniLM
  * tokenizer and keeps chunking free of a tokenizer dependency (ADR-0010).
@@ -20,7 +20,28 @@ public class MarkdownChunker {
 
   public static final int TARGET_TOKENS = 500;
   public static final int MAX_TOKENS = 800;
-  static final int OVERLAP_PERCENT = 12;
+  public static final int OVERLAP_PERCENT = 12;
+
+  private final int targetTokens;
+  private final int maxTokens;
+  private final int overlapPercent;
+
+  public MarkdownChunker() {
+    this(TARGET_TOKENS, MAX_TOKENS, OVERLAP_PERCENT);
+  }
+
+  /** Configurable chunker used by the eval harness for chunk-size experiments. */
+  public MarkdownChunker(int targetTokens, int maxTokens, int overlapPercent) {
+    if (targetTokens < 50
+        || maxTokens < targetTokens
+        || overlapPercent < 0
+        || overlapPercent > 50) {
+      throw new IllegalArgumentException("invalid chunking configuration");
+    }
+    this.targetTokens = targetTokens;
+    this.maxTokens = maxTokens;
+    this.overlapPercent = overlapPercent;
+  }
 
   private static final Pattern HEADING = Pattern.compile("^(#{1,6})\\s+(.+?)\\s*#*\\s*$");
   private static final Pattern FENCE = Pattern.compile("^\\s*(`{3,}|~{3,})(.*)$");
@@ -147,12 +168,11 @@ public class MarkdownChunker {
     StringBuilder current = new StringBuilder();
     String overlap = "";
     for (String unit : units) {
-      List<String> pieces =
-          estimateTokens(unit) > MAX_TOKENS ? splitOversized(unit) : List.of(unit);
+      List<String> pieces = estimateTokens(unit) > maxTokens ? splitOversized(unit) : List.of(unit);
       for (String piece : pieces) {
         int pieceTokens = estimateTokens(piece);
         if (current.length() > 0
-            && estimateTokens(current.toString()) + pieceTokens > TARGET_TOKENS) {
+            && estimateTokens(current.toString()) + pieceTokens > targetTokens) {
           String flushed = current.toString().strip();
           chunks.add(flushed);
           overlap = tail(flushed);
@@ -162,7 +182,7 @@ public class MarkdownChunker {
             && !overlap.isBlank()
             && !piece.stripLeading().startsWith("```")
             && !piece.stripLeading().startsWith("~~~")
-            && estimateTokens(overlap) + pieceTokens <= MAX_TOKENS) {
+            && estimateTokens(overlap) + pieceTokens <= maxTokens) {
           current.append(overlap).append("\n\n");
         }
         if (current.length() > 0) {
@@ -249,7 +269,7 @@ public class MarkdownChunker {
     String[] lines = unit.split("\n", -1);
     String prefix = marker + language + "\n";
     String suffix = "\n" + marker;
-    int budget = Math.max(50, TARGET_TOKENS - estimateTokens(prefix + suffix));
+    int budget = Math.max(50, targetTokens - estimateTokens(prefix + suffix));
     int end = lines.length;
     if (end > 1) {
       String last = lines[end - 1].strip();
@@ -276,7 +296,7 @@ public class MarkdownChunker {
 
   private List<String> splitByWords(String unit) {
     String[] words = unit.split("\\s+");
-    int maxWords = Math.max(25, TARGET_TOKENS);
+    int maxWords = Math.max(25, targetTokens);
     List<String> pieces = new ArrayList<>();
     StringBuilder current = new StringBuilder();
     int count = 0;
@@ -299,8 +319,8 @@ public class MarkdownChunker {
     return pieces;
   }
 
-  private static String tail(String content) {
-    int targetChars = (TARGET_TOKENS * 4 * OVERLAP_PERCENT) / 100;
+  private String tail(String content) {
+    int targetChars = (targetTokens * 4 * overlapPercent) / 100;
     if (content.length() <= targetChars) {
       return content;
     }

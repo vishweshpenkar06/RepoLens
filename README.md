@@ -3,7 +3,7 @@
 Self-hosted Java service that ingests a GitHub repository's documentation and issues, then answers
 questions about it with verified citations via a REST API and an MCP server for AI assistants.
 
-> Status: Phase 4 (MCP + security). Observability, evaluation, and deployment land phase by phase.
+> Status: Phase 5 (metrics, eval, load tests). Packaging and deployment land in Phase 6.
 > See `PROGRESS.md` and `MASTERPLAN.md`.
 
 ## Stack
@@ -120,7 +120,20 @@ Claude Desktop config and a generic client example. HTTP requests need `X-API-Ke
 
 ## Results
 
-Published after Phase 5 (evaluation + benchmarks). No numbers are claimed before measurement.
+Measured on this machine (see `docs/EVAL.md`, `docs/BENCHMARKS.md` for methodology and caveats):
+
+| Metric | Result |
+|---|---|
+| Retrieval hit@6 (hybrid RRF) | **92.5%** vs 85.0% vector-only, 65.0% keyword-only |
+| Retrieval MRR@6 (hybrid) | 0.765 |
+| Search throughput (200 VUs) | ~274 req/s, p95 664–804 ms |
+| `/ask` cache hit vs bypass (fake 300 ms LLM) | **808 vs 53 req/s**, p95 6 vs 400 ms |
+| Retrieval p95 | vector 156.6 ms, keyword 134.2 ms, fusion ≤1 ms |
+| Ingestion (301 docs / 319 chunks) | 12.03 s at embedding concurrency 2 |
+
+Evaluation: 52 cases over `encode/httpx` and `Kludex/starlette` plus an injection fixture.
+Answer-quality metrics with a real model are pending a provider key; the harness and structural
+checks are in place.
 
 ## License
 
