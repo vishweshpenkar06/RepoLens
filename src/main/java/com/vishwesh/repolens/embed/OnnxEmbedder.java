@@ -1,8 +1,11 @@
 package com.vishwesh.repolens.embed;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.vishwesh.repolens.config.RepoLensProperties;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +27,16 @@ public class OnnxEmbedder implements Embedder {
   private final EmbeddingModel embeddingModel;
   private final int dimensions;
   private final AtomicBoolean ready = new AtomicBoolean(false);
+  private final Cache<String, float[]> queryCache;
 
   public OnnxEmbedder(EmbeddingModel embeddingModel, RepoLensProperties properties) {
     this.embeddingModel = embeddingModel;
     this.dimensions = properties.embedding().dimensions();
+    this.queryCache =
+        Caffeine.newBuilder()
+            .expireAfterWrite(properties.cache().embeddingTtl())
+            .maximumSize(properties.cache().embeddingMaxSize())
+            .build();
   }
 
   @PostConstruct
@@ -54,6 +63,12 @@ public class OnnxEmbedder implements Embedder {
   @Override
   public boolean ready() {
     return ready.get();
+  }
+
+  @Override
+  public float[] embed(String text) {
+    String key = text == null ? "" : text.strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+    return queryCache.get(key, ignored -> embedAll(List.of(text)).getFirst());
   }
 
   @Override

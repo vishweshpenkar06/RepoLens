@@ -76,3 +76,18 @@ repolens:
     timeout: 20s
     max-question-length: 1000
     top-k-max: 12
+  llm:
+    provider: ${LLM_PROVIDER:fake}
+    base-url: ${LLM_BASE_URL:https://api.openai.com/v1}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:}
+    timeout: 60s
+    max-tokens: 800
+    temperature: 0.0
+    json-mode: true
+    fake-latency: ${LLM_FAKE_LATENCY:0ms}
+  cache:
+    answer-ttl: 1h
+    answer-max-size: 10000
+    embedding-ttl: 24h
+    embedding-max-size: 10000

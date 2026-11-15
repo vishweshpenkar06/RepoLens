@@ -37,7 +37,9 @@ class RestGitHubClientTests {
             new RepoLensProperties.Github("", server.baseUrl(), true, 300, 1024 * 1024),
             new RepoLensProperties.Embedding(2, 32, 384, false),
             new RepoLensProperties.Retrieval(30, 6, 60),
-            new RepoLensProperties.Ask(Duration.ofSeconds(20), 1000, 12));
+            new RepoLensProperties.Ask(Duration.ofSeconds(20), 1000, 12),
+            RepoLensProperties.defaultLlm(),
+            RepoLensProperties.defaultCache());
     client = new RestGitHubClient(properties, JsonMapper.builder().build());
   }
 
@@ -202,7 +204,9 @@ class RestGitHubClientTests {
                 new RepoLensProperties.Github("", server.baseUrl(), false, 300, 1024 * 1024),
                 new RepoLensProperties.Embedding(2, 32, 384, false),
                 new RepoLensProperties.Retrieval(30, 6, 60),
-                new RepoLensProperties.Ask(Duration.ofSeconds(20), 1000, 12)),
+                new RepoLensProperties.Ask(Duration.ofSeconds(20), 1000, 12),
+                RepoLensProperties.defaultLlm(),
+                RepoLensProperties.defaultCache()),
             JsonMapper.builder().build());
 
     assertThat(disabled.fetchIssues(repo, 10)).isEmpty();

@@ -30,7 +30,8 @@ starters); examples written for Boot 3 may not apply.
 
 ## ADR-0002: Spring AI over LangChain4j
 
-**Decision:** Spring AI 2.0.2.
+**Decision:** Spring AI 2.0.2 for embeddings (ONNX Transformers). Chat generation uses a thin
+OpenAI-compatible gateway instead of Spring AI chat starters; see ADR-0017.
 **Why:** first-party Spring Boot integration (chat models, structured output, MCP server starters,
 ONNX Transformers embedding model), and 2.0.x officially targets Boot 4.1.x.
 **Alternatives:** LangChain4j (mature, but more manual wiring and a second AI abstraction).
@@ -170,3 +171,43 @@ build on human-owned code.
 claim these as personally written; the honest framing is "implemented with AI assistance, reviewed
 and understood by me" only after the owner actually reviews and can explain them. Provenance is
 also recorded in the affected Javadoc.
+
+
+## ADR-0017: OpenAI-compatible LLM gateway instead of an Anthropic-only default
+
+**Decision:** `LlmGateway` has two implementations: `FakeLlmGateway` (default, no key, deterministic)
+and `OpenAiCompatibleLlmGateway` (any `/chat/completions` endpoint). Provider is selected with
+`LLM_PROVIDER`; OpenAI, OpenRouter, Groq, Together, vLLM, LM Studio and Ollama (`/v1`) all work with
+the same code by changing base URL, key and model. Anthropic's native API is intentionally not
+wired.
+**Why:** the owner's key will not be Anthropic and the exact provider is unknown. One OpenAI-compatible
+protocol covers the practical options without new code; the fake keeps tests and load tests free of
+keys and network variance. The plan allows alternative AI libraries with an ADR.
+**Alternatives:** Spring AI chat starters per provider (multiple starter beans, selector
+configuration, more coupling), native Anthropic client (excluded by owner), LangChain4j (second AI
+stack).
+**Tradeoff:** no provider-native structured-output schema enforcement; we ask for JSON, parse
+tolerantly, and validate citations ourselves. Streaming uses plain SSE deltas, so the streaming
+prompt asks for text with `[n]` markers rather than JSON.
+
+## ADR-0018: Prompt-injection and citation defenses
+
+**Decision:** retrieved text is wrapped in explicit `<<<BEGIN/END_UNTRUSTED_CONTEXT>>>` delimiters,
+the system prompt labels it as data, forbids following its instructions, forbids tool use, and
+includes a sentinel. Answers must cite context blocks with `[n]`; `CitationVerifier` strips
+out-of-range markers, refuses when no valid citation remains, and refuses if the answer contains the
+system sentinel. The answer step has no tools and the service never executes retrieved instructions.
+**Why:** defense in depth that is testable without a real model: prompt construction, no-tool
+architecture, citation validation, and leak detection.
+**Tradeoff:** this cannot prove a model will never be tricked. Phase 5 eval includes injection cases
+against a real provider; until then the fake-provider tests demonstrate the service-side guards.
+
+## ADR-0019: Answer and query-embedding caches
+
+**Decision:** Caffeine answer cache keyed by `(repositoryId, contentVersion, normalizedQuestion,
+topK)` with a 1 h TTL and 10k max entries; query embeddings cached by normalized text with a 24 h
+TTL. The content version changes on re-ingestion, which invalidates answers without explicit
+eviction.
+**Why:** repeated questions are cheap and re-indexing cannot serve stale answers; embedding cache
+avoids re-running ONNX for identical queries.
+**Tradeoff:** in-process only (per node); Redis is the documented stretch goal for multi-node.

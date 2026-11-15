@@ -156,6 +156,8 @@ class RankFusionContractTests {
         new RepoLensProperties.Github("", "https://api.github.com", true, 300, 1_048_576),
         new RepoLensProperties.Embedding(2, 32, 384, false),
         new RepoLensProperties.Retrieval(30, 6, k),
-        new RepoLensProperties.Ask(Duration.ofSeconds(20), 1000, 12));
+        new RepoLensProperties.Ask(Duration.ofSeconds(20), 1000, 12),
+        RepoLensProperties.defaultLlm(),
+        RepoLensProperties.defaultCache());
   }
 }

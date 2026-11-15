@@ -41,9 +41,27 @@
 HUMAN CHECKPOINT 2 (RRF) to the agent on 2026-11-15. Both are agent-written; see ADR-0016. Do not
 present them as human-written unless the owner reviews and can explain them.
 
-**Next:** Phase 3 answering (prompt builder, LLM gateway, citations, SSE, caching), then Phase 4.
+## Phase 3 — Answering (complete)
+
+- `PromptBuilder`: system rules, numbered untrusted context delimiters, JSON output contract,
+  separate streaming prompt; sentinel for leak detection.
+- `LlmGateway`: fake (default, deterministic, configurable latency) + OpenAI-compatible HTTP gateway
+  (OpenAI/OpenRouter/Groq/vLLM/Ollama), JSON mode, SSE streaming. Owner's key is not Anthropic;
+  see ADR-0017.
+- `AnswerParser` + `CitationVerifier`: tolerant JSON parsing, marker/field validation, invalid
+  markers stripped, refusal with zero valid citations, system-prompt leak refusal.
+- `AskService`: cache lookup, retrieval, generation, verification, `query_log`, `cached` flag;
+  `POST /ask` and `GET /ask/stream` (SSE `token` + `final` events).
+- Caffeine answer cache keyed by `contentVersion` (invalidates on re-ingest) and query-embedding
+  cache; 41 new tests (total 154). Live check on `octocat/Hello-World`: grounded fake answer cites
+  the issue source; repeated normalized question returns `cached=true`; SSE streams tokens.
+
+**Next:** Phase 4 (MCP tools, API keys, request IDs, rate limiting; token bucket now agent-owned
+under the checkpoint delegation).
 
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns
   semantic candidates; the eval set must account for this.
+- Real-provider behavior (including injection resistance) is unverified until a key is provided;
+  eval will cover it.

@@ -1,5 +1,7 @@
 package com.vishwesh.repolens.api;
 
+import com.vishwesh.repolens.answer.InvalidQuestionException;
+import com.vishwesh.repolens.answer.LlmException;
 import com.vishwesh.repolens.ingest.InvalidRepositoryUrlException;
 import com.vishwesh.repolens.retrieve.InvalidSearchQueryException;
 import com.vishwesh.repolens.retrieve.RetrievalException;
@@ -33,6 +35,16 @@ public class ApiExceptionHandler {
   @ExceptionHandler(IngestionConflictException.class)
   ProblemDetail conflict(IngestionConflictException exception) {
     return problem(HttpStatus.CONFLICT, "Ingestion conflict", exception.getMessage());
+  }
+
+  @ExceptionHandler(InvalidQuestionException.class)
+  ProblemDetail invalidQuestion(InvalidQuestionException exception) {
+    return problem(HttpStatus.BAD_REQUEST, "Invalid question", exception.getMessage());
+  }
+
+  @ExceptionHandler(LlmException.class)
+  ProblemDetail llmFailure(LlmException exception) {
+    return problem(HttpStatus.BAD_GATEWAY, "LLM request failed", exception.getMessage());
   }
 
   @ExceptionHandler(InvalidSearchQueryException.class)

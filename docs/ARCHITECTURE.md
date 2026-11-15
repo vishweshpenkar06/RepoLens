@@ -2,10 +2,11 @@
 
 ## Status
 
-Phase 2 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
+Phase 3 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
 Markdown chunking, local ONNX embeddings, incremental re-index, hybrid retrieval (vector + FTS)
-fused with RRF, and `GET /api/v1/repos/{id}/search`. Later phases add answering, MCP, security,
-observability, and evaluation.
+fused with RRF, grounded `/ask` with citation verification and SSE streaming, prompt-injection
+defenses, and answer/embedding caches. Later phases add MCP, security, observability, and
+evaluation.
 
 ## Context
 
@@ -75,6 +76,18 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
   contract tests run in the default build.
 - `Retriever` runs both searches in parallel on virtual threads, fuses, and backs
   `GET /api/v1/repos/{id}/search` (limit clamped 1..12). Retrieval failures map to 503.
+
+## Answering pipeline (implemented)
+
+1. Validate question (max 1,000 chars) and clamp `topK` to 1..12.
+2. Answer cache lookup by `(repoId, contentVersion, normalizedQuestion, topK)`.
+3. Retrieve hybrid context (vector + keyword in parallel, RRF).
+4. Build a prompt: fixed system rules + numbered context blocks inside untrusted-data delimiters.
+5. Call the pluggable `LlmGateway` (fake by default, or any OpenAI-compatible endpoint).
+6. Parse structured JSON, verify citations, strip invalid `[n]` markers, refuse when no valid
+   citation remains or when the response leaks the system sentinel.
+7. Cache the verified answer, write `query_log`, return citations, `refused`, `latencyMs`, `cached`.
+   SSE streaming uses a plain-text prompt variant and emits `token` events plus a final JSON event.
 
 ## Database
 

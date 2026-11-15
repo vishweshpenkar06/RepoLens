@@ -3,7 +3,7 @@
 Self-hosted Java service that ingests a GitHub repository's documentation and issues, then answers
 questions about it with verified citations via a REST API and an MCP server for AI assistants.
 
-> Status: Phase 2 (hybrid retrieval). Answering, MCP, and evaluation land phase by phase.
+> Status: Phase 3 (grounded answering). MCP, security, and evaluation land phase by phase.
 > See `PROGRESS.md` and `MASTERPLAN.md`.
 
 ## Stack
@@ -62,6 +62,29 @@ curl -s "localhost:8081/api/v1/repos/1/search?q=docker+compose&k=6"
 
 Each hit includes the snippet, source URL, fused score, and its 1-based rank in each retriever
 (`null` when that retriever did not return it). `k` is clamped to 1..12.
+
+## Ask
+
+```bash
+curl -s -X POST localhost:8081/api/v1/repos/1/ask \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"How do I run this?","topK":6}'
+# -> { answer, citations[], refused, latencyMs, cached }
+
+curl -N "localhost:8081/api/v1/repos/1/ask/stream?question=How+do+I+run+this%3F&topK=6"
+```
+
+Answers are grounded, cite sources, and refuse when evidence is missing. The default LLM is a
+deterministic fake (no key). For a real model set any OpenAI-compatible endpoint:
+
+```bash
+LLM_PROVIDER=openai           # or openrouter, groq, ollama, openai-compatible...
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=...
+LLM_MODEL=gpt-4o-mini
+```
+
+Ollama: `LLM_PROVIDER=ollama LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=llama3.1`.
 
 ## Documentation
 

@@ -13,7 +13,27 @@ public record RepoLensProperties(
     @DefaultValue Github github,
     @DefaultValue Embedding embedding,
     @DefaultValue Retrieval retrieval,
-    @DefaultValue Ask ask) {
+    @DefaultValue Ask ask,
+    @DefaultValue Llm llm,
+    @DefaultValue Cache cache) {
+
+  /** Defaults for tests that build properties by hand with the first four groups. */
+  public static Llm defaultLlm() {
+    return new Llm(
+        "fake",
+        "https://api.openai.com/v1",
+        "",
+        "",
+        Duration.ofSeconds(60),
+        800,
+        0.0,
+        true,
+        Duration.ZERO);
+  }
+
+  public static Cache defaultCache() {
+    return new Cache(Duration.ofHours(1), 10_000, Duration.ofHours(24), 10_000);
+  }
 
   public record Github(
       @DefaultValue("") String token,
@@ -37,4 +57,21 @@ public record RepoLensProperties(
       @DefaultValue("20s") Duration timeout,
       @DefaultValue("1000") int maxQuestionLength,
       @DefaultValue("12") int topKMax) {}
+
+  public record Llm(
+      @DefaultValue("fake") String provider,
+      @DefaultValue("https://api.openai.com/v1") String baseUrl,
+      @DefaultValue("") String apiKey,
+      @DefaultValue("") String model,
+      @DefaultValue("60s") Duration timeout,
+      @DefaultValue("800") int maxTokens,
+      @DefaultValue("0.0") double temperature,
+      @DefaultValue("true") boolean jsonMode,
+      @DefaultValue("0ms") Duration fakeLatency) {}
+
+  public record Cache(
+      @DefaultValue("1h") Duration answerTtl,
+      @DefaultValue("10000") long answerMaxSize,
+      @DefaultValue("24h") Duration embeddingTtl,
+      @DefaultValue("10000") long embeddingMaxSize) {}
 }
