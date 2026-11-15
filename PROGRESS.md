@@ -23,7 +23,18 @@
 - 83 tests; chunker line coverage 98.5%. Real run: `octocat/Hello-World` (301 docs: README + 300
   issues, 319 chunks, 384 dims); re-index wrote 0 chunks in ~0.7 s.
 
-**Next:** Phase 2 retrieval, including HUMAN CHECKPOINT 2 (RRF stub/tests for the human).
+## Phase 2 — Retrieval (human checkpoint 2 pending)
 
-**Known issues:** HUMAN CHECKPOINT 1 sections in `docs/ARCHITECTURE.md` are still human-owned TODOs.
-Issue ingestion is capped at 300 by design.
+- `VectorSearch` (pgvector cosine) and `KeywordSearch` (FTS `ts_rank_cd`) with repo filtering,
+  limits and source metadata; 10 new Testcontainers tests.
+- `RankFusion` stub with Javadoc contract; 11 contract tests tagged `human-checkpoint`
+  (excluded from default build, run with `./mvnw -Pcheckpoints test`).
+- Default build green: 93 tests, coverage gates met.
+
+**Next:** HUMAN CHECKPOINT 2 — the human implements `RankFusion#fuse`. After that: parallel
+`Retriever` + `GET /api/v1/repos/{id}/search`, then the retrieval integration test.
+
+**Known issues:**
+- HUMAN CHECKPOINT 1 sections in `docs/ARCHITECTURE.md` are still human-owned TODOs.
+- HUMAN CHECKPOINT 2 stub intentionally throws until implemented.
+- Issue ingestion is capped at 300 by design.

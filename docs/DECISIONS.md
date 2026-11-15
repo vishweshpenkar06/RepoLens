@@ -145,3 +145,25 @@ and up to 300 issues/discussions-by-issue-endpoint (configurable, `GITHUB_ISSUES
 **Why:** keeps the first index bounded and defensible; `octocat/Hello-World` has an extensionless
 README and >300 issues, which motivated both rules.
 **Tradeoff:** docs outside `docs/` at depth > 1 are skipped; raise the limit later if needed.
+
+## ADR-0015: Hybrid retrieval shape (vector + FTS, union then RRF)
+
+**Decision:** `VectorSearch` uses `1 - (embedding <=> query)` over an HNSW cosine index, filtered
+by `repository_id`, ordered by cosine distance, limited (default 30). `KeywordSearch` uses
+`ts_rank_cd(fts, websearch_to_tsquery('english', q))` with a GIN index, ordered by rank and chunk id,
+limited. Both return `ScoredChunk` (chunk + document metadata + retriever score). `RankFusion`
+returns `FusedHit` with fused score and both 1-based ranks (null when absent).
+**Why:** keeps each retriever independently testable and measurable in the eval harness (vector
+only, keyword only, hybrid), which the plan requires. `websearch_to_tsquery` is forgiving of user
+input and supports quotes/negation.
+**Tradeoff:** scores from the two retrievers are not comparable, which is why fusion is rank-based.
+
+## ADR-0016: Human-checkpoint tests are tagged, not deleted
+
+**Decision:** tests for human-owned code use JUnit tag `human-checkpoint`. Surefire excludes that
+tag by default; the Maven profile `checkpoints` includes it (`./mvnw -Pcheckpoints test`). The RRF
+stub throws `UnsupportedOperationException` until the human implements it.
+**Why:** the default build must stay green while human-owned code is intentionally unimplemented;
+deleting or `@Disabled`-ing the tests would hide the contract.
+**Tradeoff:** CI does not run checkpoint tests until the human completes a checkpoint (documented
+in `PROGRESS.md`).

@@ -64,6 +64,17 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
    documents are deleted (chunks cascade). `content_version` is a hash of all document hashes.
 6. Job and repository status are updated; failures mark both `FAILED` with the error message.
 
+## Retrieval pipeline (Phase 2, in progress)
+
+- `VectorSearch`: cosine similarity over `chunk.embedding` (HNSW), filtered by repository.
+- `KeywordSearch`: Postgres FTS via `ts_rank_cd` + `websearch_to_tsquery`.
+- Both return `ScoredChunk` with source metadata, independently testable for the eval harness.
+- `RankFusion` (HUMAN CHECKPOINT 2) fuses ranked lists with RRF (`k = 60`), producing `FusedHit`
+  with fused score and per-retriever ranks. The stub is intentionally unimplemented; contract
+  tests run with `./mvnw -Pcheckpoints test`.
+- After the checkpoint: wire a `Retriever` that runs both searches in parallel on virtual threads,
+  fuses, and backs `GET /api/v1/repos/{id}/search`.
+
 ## Database
 
 Flyway `V1__initial_schema.sql` creates `repository`, `document`, `chunk`, `ingestion_job`,
