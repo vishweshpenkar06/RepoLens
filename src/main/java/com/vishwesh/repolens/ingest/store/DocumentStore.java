@@ -30,16 +30,25 @@ public class DocumentStore {
     return jdbc.sql(SELECT + " WHERE id = ?").param(id).query(this::map).optional();
   }
 
+  public Optional<DocumentRow> findByRepositoryAndPathOrRef(long repositoryId, String pathOrRef) {
+    return jdbc.sql(SELECT + " WHERE repository_id = ? AND path_or_ref = ? ORDER BY id LIMIT 1")
+        .params(repositoryId, pathOrRef)
+        .query(this::map)
+        .optional();
+  }
+
   public long upsert(long repositoryId, DocumentSource document, String contentHash) {
     return jdbc.sql(
             """
-            INSERT INTO document (repository_id, kind, path_or_ref, url, title, content_hash, etag)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO document
+              (repository_id, kind, path_or_ref, url, title, content_hash, etag, content)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (repository_id, kind, path_or_ref) DO UPDATE
             SET url = excluded.url,
                 title = excluded.title,
                 content_hash = excluded.content_hash,
                 etag = excluded.etag,
+                content = excluded.content,
                 updated_at = now()
             RETURNING id
             """)
@@ -50,7 +59,8 @@ public class DocumentStore {
             document.url(),
             document.title(),
             contentHash,
-            document.etag())
+            document.etag(),
+            document.content())
         .query(Long.class)
         .single();
   }
@@ -64,7 +74,7 @@ public class DocumentStore {
 
   private static final String SELECT =
       """
-      SELECT id, repository_id, kind, path_or_ref, url, title, content_hash, etag
+      SELECT id, repository_id, kind, path_or_ref, url, title, content_hash, etag, content
       FROM document
       """;
 
@@ -77,6 +87,7 @@ public class DocumentStore {
         rs.getString("url"),
         rs.getString("title"),
         rs.getString("content_hash"),
-        rs.getString("etag"));
+        rs.getString("etag"),
+        rs.getString("content"));
   }
 }

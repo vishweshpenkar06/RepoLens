@@ -3,7 +3,7 @@
 Self-hosted Java service that ingests a GitHub repository's documentation and issues, then answers
 questions about it with verified citations via a REST API and an MCP server for AI assistants.
 
-> Status: Phase 3 (grounded answering). MCP, security, and evaluation land phase by phase.
+> Status: Phase 4 (MCP + security). Observability, evaluation, and deployment land phase by phase.
 > See `PROGRESS.md` and `MASTERPLAN.md`.
 
 ## Stack
@@ -34,19 +34,30 @@ Local ports (non-default on purpose, see `docs/ENVIRONMENT.md`):
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3001 (admin/admin) |
 
+## Authentication
+
+All `/api/*` and `/mcp` requests need an API key. Set `REPOLENS_API_KEY` in `.env` before starting;
+only its SHA-256 hash is stored. Example:
+
+```bash
+export REPOLENS_API_KEY=$(openssl rand -hex 32)
+curl -s localhost:8081/api/v1/repos -H "X-API-Key: $REPOLENS_API_KEY"
+```
+
 ## Try ingestion
 
 ```bash
 # Register a repo (async). Returns 202 with repoId + jobId.
 curl -s -X POST localhost:8081/api/v1/repos \
+  -H "X-API-Key: $REPOLENS_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"url":"https://github.com/octocat/Hello-World"}'
 
-curl -s localhost:8081/api/v1/repos/1        # status + latest job
-curl -s localhost:8081/api/v1/repos         # all repos
+curl -s localhost:8081/api/v1/repos/1 -H "X-API-Key: $REPOLENS_API_KEY"
+curl -s localhost:8081/api/v1/repos   -H "X-API-Key: $REPOLENS_API_KEY"
 
 # Incremental re-index (ETag + content hash; unchanged docs are not re-embedded)
-curl -s -X POST localhost:8081/api/v1/repos/1/reindex
+curl -s -X POST localhost:8081/api/v1/repos/1/reindex -H "X-API-Key: $REPOLENS_API_KEY"
 ```
 
 Only `https://github.com/{owner}/{name}` is accepted. Ingestion covers the README, top-level
@@ -57,7 +68,8 @@ Embeddings are local ONNX (384 dims); the first run downloads the model (~90 MB)
 
 ```bash
 # Hybrid search: vector + full-text, fused with Reciprocal Rank Fusion (k = 60).
-curl -s "localhost:8081/api/v1/repos/1/search?q=docker+compose&k=6"
+curl -s "localhost:8081/api/v1/repos/1/search?q=docker+compose&k=6" \
+  -H "X-API-Key: $REPOLENS_API_KEY"
 ```
 
 Each hit includes the snippet, source URL, fused score, and its 1-based rank in each retriever
@@ -67,11 +79,13 @@ Each hit includes the snippet, source URL, fused score, and its 1-based rank in 
 
 ```bash
 curl -s -X POST localhost:8081/api/v1/repos/1/ask \
+  -H "X-API-Key: $REPOLENS_API_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"question":"How do I run this?","topK":6}'
 # -> { answer, citations[], refused, latencyMs, cached }
 
-curl -N "localhost:8081/api/v1/repos/1/ask/stream?question=How+do+I+run+this%3F&topK=6"
+curl -N "localhost:8081/api/v1/repos/1/ask/stream?question=How+do+I+run+this%3F&topK=6" \
+  -H "X-API-Key: $REPOLENS_API_KEY"
 ```
 
 Answers are grounded, cite sources, and refuse when evidence is missing. The default LLM is a
@@ -85,6 +99,11 @@ LLM_MODEL=gpt-4o-mini
 ```
 
 Ollama: `LLM_PROVIDER=ollama LLM_BASE_URL=http://localhost:11434/v1 LLM_MODEL=llama3.1`.
+
+## MCP
+
+Four tools are exposed over streamable HTTP (`/mcp`) and stdio. See `docs/MCP_SETUP.md` for the
+Claude Desktop config and a generic client example. HTTP requests need `X-API-Key`.
 
 ## Documentation
 

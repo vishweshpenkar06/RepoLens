@@ -8,7 +8,8 @@ public record DocumentRow(
     String url,
     String title,
     String contentHash,
-    String etag) {
+    String etag,
+    String content) {
 
   public String key() {
     return key(kind, pathOrRef);

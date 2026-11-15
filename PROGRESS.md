@@ -56,8 +56,25 @@ present them as human-written unless the owner reviews and can explain them.
   cache; 41 new tests (total 154). Live check on `octocat/Hello-World`: grounded fake answer cites
   the issue source; repeated normalized question returns `cached=true`; SSE streams tokens.
 
-**Next:** Phase 4 (MCP tools, API keys, request IDs, rate limiting; token bucket now agent-owned
-under the checkpoint delegation).
+## Phase 4 — MCP, security, rate limiting (complete)
+
+- MCP tools (`list_repositories`, `search_docs`, `ask_repo`, `get_document`) via `@McpTool`, with
+  untrusted-document delimiters; streamable HTTP at `/mcp` and stdio mode verified with a real
+  JSON-RPC probe (initialize → tools/list → list_repositories).
+- `docs/MCP_SETUP.md` with Claude Desktop stdio config and a generic HTTP client example.
+- API keys: SHA-256 hashes in `api_key`, env bootstrap, revocation, fail-closed 401 for `/api/*` and
+  `/mcp`, actuator exempt. Request-ID filter (validated header, UUID fallback, MDC + response header).
+- Token bucket (agent-written under delegated CHECKPOINT 3): lock-based, injectable clock, ask vs
+  search vs general scopes, per key with IP fallback; 429 + `Retry-After` + `RateLimit-*` headers.
+- Migration V2 stores document text for `get_document` (20k char cap).
+- 24 new tests (178 total): token-bucket concurrency/refill, filter auth/request-id, 429 behaviour and
+  scope isolation, MCP client integration for all four tools and 401 on the MCP endpoint.
+
+**Checkpoint provenance:** HUMAN CHECKPOINT 3 (token bucket) is agent-written under the owner's
+delegation (ADR-0016); do not present it as human-written without review.
+
+**Next:** Phase 5 (metrics, Grafana dashboard, eval harness + delegated CHECKPOINT 4, k6 + delegated
+CHECKPOINT 5).
 
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
@@ -65,3 +82,4 @@ under the checkpoint delegation).
   semantic candidates; the eval set must account for this.
 - Real-provider behavior (including injection resistance) is unverified until a key is provided;
   eval will cover it.
+- Rate limiting is per node (in-process Caffeine bucket registry); Redis is a stretch goal.

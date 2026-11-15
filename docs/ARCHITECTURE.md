@@ -2,11 +2,12 @@
 
 ## Status
 
-Phase 3 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
+Phase 4 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
 Markdown chunking, local ONNX embeddings, incremental re-index, hybrid retrieval (vector + FTS)
 fused with RRF, grounded `/ask` with citation verification and SSE streaming, prompt-injection
-defenses, and answer/embedding caches. Later phases add MCP, security, observability, and
-evaluation.
+defenses, answer/embedding caches, MCP tools over streamable HTTP and stdio, hashed API keys,
+request IDs, and per-scope token-bucket rate limiting. Later phases add observability,
+evaluation, and deployment.
 
 ## Context
 
@@ -88,6 +89,18 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
    citation remains or when the response leaks the system sentinel.
 7. Cache the verified answer, write `query_log`, return citations, `refused`, `latencyMs`, `cached`.
    SSE streaming uses a plain-text prompt variant and emits `token` events plus a final JSON event.
+
+## MCP and edge security (implemented)
+
+- `RepoLensMcpTools`: `list_repositories`, `search_docs`, `ask_repo`, `get_document` annotated with
+  `@McpTool`; descriptions target an LLM reader; retrieved text is wrapped in untrusted delimiters.
+- HTTP transport: streamable HTTP at `/mcp` (Spring AI MCP server starter); stdio transport is an
+  alternate launch mode (web application type `none`, logs to stderr).
+- `RequestIdFilter`: validated `X-Request-Id` or UUID, response header, MDC.
+- `ApiKeyFilter`: `X-API-Key` required for `/api/*` and `/mcp`; SHA-256 hashes in `api_key`,
+  revocation, fail-closed; actuator exempt.
+- `RateLimitFilter`: per-key (IP fallback) token buckets with separate ask/search/general scopes,
+  `RateLimit-*` headers and RFC 7807 429 with `Retry-After`.
 
 ## Database
 

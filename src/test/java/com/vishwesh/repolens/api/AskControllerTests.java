@@ -32,7 +32,12 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-@SpringBootTest(properties = {"spring.ai.model.embedding=none", "repolens.embedding.warmup=false"})
+@SpringBootTest(
+    properties = {
+      "spring.ai.model.embedding=none",
+      "repolens.embedding.warmup=false",
+      "repolens.security.api-key-required=false"
+    })
 @AutoConfigureMockMvc
 @Import({TestcontainersConfiguration.class, TestFakes.class})
 class AskControllerTests {

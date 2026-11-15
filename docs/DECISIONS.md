@@ -211,3 +211,56 @@ eviction.
 **Why:** repeated questions are cheap and re-indexing cannot serve stale answers; embedding cache
 avoids re-running ONNX for identical queries.
 **Tradeoff:** in-process only (per node); Redis is the documented stretch goal for multi-node.
+
+## ADR-0020: MCP server on Spring AI 2.0.2 with dual transports
+
+**Decision:** `spring-ai-starter-mcp-server-webmvc` with protocol `streamable` and
+`@McpTool` annotated methods for HTTP (`/mcp`), plus the same annotation-scanned tools over stdio
+(`spring.ai.mcp.server.stdio=true`, web application type `none`, `logback-stdio.xml` to keep logs off
+stdout). Tool results wrap retrieved text in untrusted-document delimiters.
+**Why:** the starter handles JSON-schema generation, sync tool registration and streamable HTTP;
+one tools class serves both transports. Stdio gives Claude Desktop a no-network, no-header option;
+HTTP gives remote clients a standard endpoint.
+**Alternatives:** manual MCP SDK wiring (more code), SSE transport (deprecated in 2.0), separate
+codebases per transport.
+**Tradeoff:** stdio and HTTP cannot share one process cleanly (transport provider conflict), so
+stdio is a documented alternate launch mode; HTTP MCP needs the API key header, which some clients
+do not support (use stdio there).
+
+## ADR-0021: API keys as SHA-256 hashes, fail closed
+
+**Decision:** `X-API-Key` is required for `/api/*` and `/mcp` by default. Only the SHA-256 hash is
+stored in `api_key`; validation looks up the unique hash and rejects revoked rows. A configured
+`REPOLENS_API_KEY` is bootstrapped at startup (hash only). Missing or invalid keys return an RFC
+7807 401. Actuator endpoints are exempt.
+**Why:** no plaintext secrets at rest, simple revocation (`revoked=true`), and secure-by-default
+deployment. Hash lookup cannot leak the secret; SHA-256 preimage resistance makes timing attacks on
+comparison impractical.
+**Alternatives:** bcrypt/Argon2 (slow for per-request auth), plaintext keys (unacceptable),
+JWT/OAuth (out of scope).
+**Tradeoff:** rotating keys requires inserting a new hash and revoking the old row; there is no
+admin API yet (SQL or restart with a new env value).
+
+## ADR-0022: Token-bucket rate limiting per key and scope
+
+**Decision:** `TokenBucket` (ReentrantLock, injectable `LongSupplier` nanosecond clock) with
+separate buckets for `ASK`, `SEARCH` and `GENERAL`, keyed by API-key id falling back to client IP.
+Defaults: ask 10 capacity / 0.5 tokens/s, search 30 / 5, general 60 / 10. Rejections are 429 with
+`Retry-After` and `RateLimit-Limit`/`Remaining`/`Reset`/`Scope` headers; allowed responses also get
+the `RateLimit-*` headers.
+**Why:** matches the plan, protects the expensive LLM path separately from search, and the injectable
+clock makes refill behaviour and concurrency testable deterministically.
+**Alternatives:** fixed windows (bursty boundaries), Guava RateLimiter (permit-based, less control),
+Redis (out of scope until multi-node).
+**Tradeoff:** in-process buckets are per node; the stretch goal is a Redis-backed shared limiter.
+Provenance: HUMAN CHECKPOINT 3 was delegated by the owner to the agent (ADR-0016).
+
+## ADR-0023: Store document text for `get_document`
+
+**Decision:** migration `V2` adds `document.content`; ingestion writes the full (already fetched)
+text, and `get_document` returns it capped at 20,000 characters inside untrusted delimiters.
+**Why:** the MCP tool contract requires full document text; reconstructing it from overlapping
+chunks would duplicate text and lose fidelity. Storage is bounded by the existing 1 MiB per-file
+ingest cap.
+**Tradeoff:** duplicate storage (document text plus chunks). Acceptable at this scale; a future
+optimization can drop the column and reconstruct from chunks if storage matters.

@@ -12,6 +12,13 @@ spring:
     enabled: true
     locations: classpath:db/migration
   ai:
+    mcp:
+      server:
+        name: repolens
+        version: 0.1.0
+        type: sync
+        protocol: ${MCP_PROTOCOL:streamable}
+        stdio: ${MCP_STDIO:false}
     model:
       embedding: ${EMBEDDING_PROVIDER:transformers}
     embedding:
@@ -91,3 +98,14 @@ repolens:
     answer-max-size: 10000
     embedding-ttl: 24h
     embedding-max-size: 10000
+  security:
+    api-key-required: ${REPOLENS_API_KEY_REQUIRED:true}
+    bootstrap-api-key: ${REPOLENS_API_KEY:}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    ask-capacity: ${RATE_LIMIT_ASK_CAPACITY:10}
+    ask-refill-per-second: ${RATE_LIMIT_ASK_REFILL:0.5}
+    search-capacity: ${RATE_LIMIT_SEARCH_CAPACITY:30}
+    search-refill-per-second: ${RATE_LIMIT_SEARCH_REFILL:5}
+    general-capacity: ${RATE_LIMIT_GENERAL_CAPACITY:60}
+    general-refill-per-second: ${RATE_LIMIT_GENERAL_REFILL:10}
