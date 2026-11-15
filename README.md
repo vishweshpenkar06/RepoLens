@@ -3,7 +3,7 @@
 Self-hosted Java service that ingests a GitHub repository's documentation and issues, then answers
 questions about it with verified citations via a REST API and an MCP server for AI assistants.
 
-> Status: Phase 1 (ingestion). Retrieval, answering, and MCP land phase by phase.
+> Status: Phase 2 (hybrid retrieval). Answering, MCP, and evaluation land phase by phase.
 > See `PROGRESS.md` and `MASTERPLAN.md`.
 
 ## Stack
@@ -52,6 +52,16 @@ curl -s -X POST localhost:8081/api/v1/repos/1/reindex
 Only `https://github.com/{owner}/{name}` is accepted. Ingestion covers the README, top-level
 markdown, `docs/**/*.md`, and up to 300 issues (`GITHUB_ISSUES_ENABLED=false` to disable).
 Embeddings are local ONNX (384 dims); the first run downloads the model (~90 MB) and caches it.
+
+## Search
+
+```bash
+# Hybrid search: vector + full-text, fused with Reciprocal Rank Fusion (k = 60).
+curl -s "localhost:8081/api/v1/repos/1/search?q=docker+compose&k=6"
+```
+
+Each hit includes the snippet, source URL, fused score, and its 1-based rank in each retriever
+(`null` when that retriever did not return it). `k` is clamped to 1..12.
 
 ## Documentation
 

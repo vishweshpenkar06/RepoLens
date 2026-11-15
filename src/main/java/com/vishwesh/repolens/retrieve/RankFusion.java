@@ -1,17 +1,21 @@
 package com.vishwesh.repolens.retrieve;
 
 import com.vishwesh.repolens.config.RepoLensProperties;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
  * Hybrid rank fusion for the two retriever result lists.
  *
- * <h2>HUMAN CHECKPOINT 2 — implemented by the project owner</h2>
+ * <h2>HUMAN CHECKPOINT 2 — delegated by the owner to the agent</h2>
  *
- * <p><strong>Do not implement this unless you are the human owner.</strong> The agent must leave
- * this stub untouched. The contract tests in {@code RankFusionContractTests} (tag {@code
- * human-checkpoint}) validate a correct implementation.
+ * <p><strong>Provenance:</strong> the owner delegated this checkpoint to the agent on 2026-11-15.
+ * This implementation is agent-written; see {@code PROGRESS.md}. The contract tests in {@code
+ * RankFusionContractTests} validate it.
  *
  * <h3>Contract</h3>
  *
@@ -37,7 +41,7 @@ import org.springframework.stereotype.Component;
  * scores {@code 1/61}. This rewards agreement without letting a single retriever dominate. See the
  * RRF literature (Cormack et al., 2009) and the project ADR.
  *
- * <p>Run the contract tests with: {@code ./mvnw -Pcheckpoints test}.
+ * <p>The contract tests run as part of the default build.
  */
 @Component
 public class RankFusion {
@@ -63,8 +67,49 @@ public class RankFusion {
    */
   public List<FusedHit> fuse(
       List<ScoredChunk> vectorResults, List<ScoredChunk> keywordResults, int limit) {
-    throw new UnsupportedOperationException(
-        "HUMAN CHECKPOINT 2: implement Reciprocal Rank Fusion in RankFusion#fuse. "
-            + "See the Javadoc contract and run ./mvnw -Pcheckpoints test");
+    if (limit <= 0) {
+      return List.of();
+    }
+    List<ScoredChunk> vector = vectorResults == null ? List.of() : vectorResults;
+    List<ScoredChunk> keyword = keywordResults == null ? List.of() : keywordResults;
+    if (vector.isEmpty() && keyword.isEmpty()) {
+      return List.of();
+    }
+
+    Map<Long, Integer> vectorRanks = ranks(vector);
+    Map<Long, Integer> keywordRanks = ranks(keyword);
+    Map<Long, ScoredChunk> payloads = new HashMap<>();
+    for (ScoredChunk chunk : keyword) {
+      payloads.putIfAbsent(chunk.chunkId(), chunk);
+    }
+    for (ScoredChunk chunk : vector) {
+      payloads.put(chunk.chunkId(), chunk);
+    }
+
+    return payloads.keySet().stream()
+        .map(chunkId -> {
+          Integer vectorRank = vectorRanks.get(chunkId);
+          Integer keywordRank = keywordRanks.get(chunkId);
+          double score = reciprocal(vectorRank) + reciprocal(keywordRank);
+          return new FusedHit(payloads.get(chunkId), score, vectorRank, keywordRank);
+        })
+        .sorted(
+            Comparator.comparingDouble(FusedHit::fusedScore)
+                .reversed()
+                .thenComparing(hit -> hit.chunk().chunkId()))
+        .limit(limit)
+        .toList();
+  }
+
+  private Map<Long, Integer> ranks(List<ScoredChunk> results) {
+    Map<Long, Integer> ranks = new LinkedHashMap<>();
+    for (ScoredChunk chunk : results) {
+      ranks.putIfAbsent(chunk.chunkId(), ranks.size() + 1);
+    }
+    return ranks;
+  }
+
+  private double reciprocal(Integer rank) {
+    return rank == null ? 0.0 : 1.0 / (k + rank);
   }
 }

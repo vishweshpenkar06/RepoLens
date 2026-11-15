@@ -1,6 +1,8 @@
 package com.vishwesh.repolens.api;
 
 import com.vishwesh.repolens.ingest.InvalidRepositoryUrlException;
+import com.vishwesh.repolens.retrieve.InvalidSearchQueryException;
+import com.vishwesh.repolens.retrieve.RetrievalException;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,16 @@ public class ApiExceptionHandler {
   @ExceptionHandler(IngestionConflictException.class)
   ProblemDetail conflict(IngestionConflictException exception) {
     return problem(HttpStatus.CONFLICT, "Ingestion conflict", exception.getMessage());
+  }
+
+  @ExceptionHandler(InvalidSearchQueryException.class)
+  ProblemDetail invalidSearch(InvalidSearchQueryException exception) {
+    return problem(HttpStatus.BAD_REQUEST, "Invalid search query", exception.getMessage());
+  }
+
+  @ExceptionHandler(RetrievalException.class)
+  ProblemDetail retrieval(RetrievalException exception) {
+    return problem(HttpStatus.SERVICE_UNAVAILABLE, "Retrieval failed", exception.getMessage());
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

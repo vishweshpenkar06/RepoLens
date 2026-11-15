@@ -23,18 +23,27 @@
 - 83 tests; chunker line coverage 98.5%. Real run: `octocat/Hello-World` (301 docs: README + 300
   issues, 319 chunks, 384 dims); re-index wrote 0 chunks in ~0.7 s.
 
-## Phase 2 — Retrieval (human checkpoint 2 pending)
+## Phase 2 — Retrieval (complete)
 
 - `VectorSearch` (pgvector cosine) and `KeywordSearch` (FTS `ts_rank_cd`) with repo filtering,
-  limits and source metadata; 10 new Testcontainers tests.
-- `RankFusion` stub with Javadoc contract; 11 contract tests tagged `human-checkpoint`
-  (excluded from default build, run with `./mvnw -Pcheckpoints test`).
-- Default build green: 93 tests, coverage gates met.
+  limits and source metadata.
+- `RankFusion`: RRF with `k = 60`, deterministic tie-break on chunk id, input immutability.
+  11 contract tests run in the default build.
+- `Retriever`: parallel vector + keyword search on virtual threads, 15 s stage timeout, limit
+  clamp 1..12.
+- `GET /api/v1/repos/{id}/search?q=&k=` with RFC 7807 errors (400 invalid query, 404 repo, 503
+  retrieval failure); snippet + both ranks + fused score.
+- 113 tests green, coverage gates met. Real check on `octocat/Hello-World`: `hello` returns the
+  README (vector #2, keyword #4) plus issue hits; `fork` returns vector-only hits, proving both
+  branches and fusion are live.
 
-**Next:** HUMAN CHECKPOINT 2 — the human implements `RankFusion#fuse`. After that: parallel
-`Retriever` + `GET /api/v1/repos/{id}/search`, then the retrieval integration test.
+**Checkpoint provenance:** the owner delegated HUMAN CHECKPOINT 1 (design write-up) and
+HUMAN CHECKPOINT 2 (RRF) to the agent on 2026-11-15. Both are agent-written; see ADR-0016. Do not
+present them as human-written unless the owner reviews and can explain them.
+
+**Next:** Phase 3 answering (prompt builder, LLM gateway, citations, SSE, caching), then Phase 4.
 
 **Known issues:**
-- HUMAN CHECKPOINT 1 sections in `docs/ARCHITECTURE.md` are still human-owned TODOs.
-- HUMAN CHECKPOINT 2 stub intentionally throws until implemented.
 - Issue ingestion is capped at 300 by design.
+- Vector search always returns nearest neighbours, so a query with no lexical match still returns
+  semantic candidates; the eval set must account for this.

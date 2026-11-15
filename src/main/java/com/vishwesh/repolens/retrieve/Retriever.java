@@ -1,0 +1,93 @@
+package com.vishwesh.repolens.retrieve;
+
+import com.vishwesh.repolens.config.RepoLensProperties;
+import com.vishwesh.repolens.embed.Embedder;
+import jakarta.annotation.PreDestroy;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.springframework.stereotype.Service;
+
+/** Runs vector and keyword retrieval in parallel on virtual threads and fuses the results. */
+@Service
+public class Retriever {
+
+  private static final long STAGE_TIMEOUT_SECONDS = 15;
+
+  private final VectorSearch vectorSearch;
+  private final KeywordSearch keywordSearch;
+  private final RankFusion rankFusion;
+  private final Embedder embedder;
+  private final RepoLensProperties properties;
+  private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+
+  public Retriever(
+      VectorSearch vectorSearch,
+      KeywordSearch keywordSearch,
+      RankFusion rankFusion,
+      Embedder embedder,
+      RepoLensProperties properties) {
+    this.vectorSearch = vectorSearch;
+    this.keywordSearch = keywordSearch;
+    this.rankFusion = rankFusion;
+    this.embedder = embedder;
+    this.properties = properties;
+  }
+
+  public List<FusedHit> retrieve(long repositoryId, String query, int requestedLimit) {
+    int limit = clampLimit(requestedLimit);
+    int candidates = Math.max(limit, properties.retrieval().candidates());
+    float[] embedding = embedder.embed(query);
+
+    Future<List<ScoredChunk>> vector =
+        executor.submit(() -> vectorSearch.search(repositoryId, embedding, candidates));
+    Future<List<ScoredChunk>> keyword =
+        executor.submit(() -> keywordSearch.search(repositoryId, query, candidates));
+
+    try {
+      List<ScoredChunk> vectorResults = vector.get(STAGE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+      List<ScoredChunk> keywordResults = keyword.get(STAGE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+      return rankFusion.fuse(vectorResults, keywordResults, limit);
+    } catch (TimeoutException e) {
+      vector.cancel(true);
+      keyword.cancel(true);
+      throw new RetrievalException("Retrieval timed out", e);
+    } catch (InterruptedException e) {
+      vector.cancel(true);
+      keyword.cancel(true);
+      Thread.currentThread().interrupt();
+      throw new RetrievalException("Retrieval interrupted", e);
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof RuntimeException runtime) {
+        throw runtime;
+      }
+      throw new RetrievalException("Retrieval failed", cause);
+    }
+  }
+
+  public int clampLimit(int requestedLimit) {
+    int max = Math.max(1, properties.ask().topKMax());
+    if (requestedLimit <= 0) {
+      return Math.min(max, properties.retrieval().topK());
+    }
+    return Math.min(requestedLimit, max);
+  }
+
+  @PreDestroy
+  void shutdown() {
+    executor.shutdown();
+    try {
+      if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+        executor.shutdownNow();
+      }
+    } catch (InterruptedException e) {
+      executor.shutdownNow();
+      Thread.currentThread().interrupt();
+    }
+  }
+}

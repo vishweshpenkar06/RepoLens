@@ -2,9 +2,10 @@
 
 ## Status
 
-Phase 1 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
-Markdown chunking, local ONNX embeddings, incremental re-index. Later phases add retrieval,
-answering, MCP, security, and evaluation.
+Phase 2 complete: skeleton, configuration, schema, REST repo endpoints, GitHub ingestion,
+Markdown chunking, local ONNX embeddings, incremental re-index, hybrid retrieval (vector + FTS)
+fused with RRF, and `GET /api/v1/repos/{id}/search`. Later phases add answering, MCP, security,
+observability, and evaluation.
 
 ## Context
 
@@ -69,11 +70,11 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
 - `VectorSearch`: cosine similarity over `chunk.embedding` (HNSW), filtered by repository.
 - `KeywordSearch`: Postgres FTS via `ts_rank_cd` + `websearch_to_tsquery`.
 - Both return `ScoredChunk` with source metadata, independently testable for the eval harness.
-- `RankFusion` (HUMAN CHECKPOINT 2) fuses ranked lists with RRF (`k = 60`), producing `FusedHit`
-  with fused score and per-retriever ranks. The stub is intentionally unimplemented; contract
-  tests run with `./mvnw -Pcheckpoints test`.
-- After the checkpoint: wire a `Retriever` that runs both searches in parallel on virtual threads,
-  fuses, and backs `GET /api/v1/repos/{id}/search`.
+- `RankFusion` fuses ranked lists with RRF (`k = 60`), producing `FusedHit` with fused score and
+  per-retriever ranks. Owner delegated this checkpoint to the agent (see `PROGRESS.md`); its
+  contract tests run in the default build.
+- `Retriever` runs both searches in parallel on virtual threads, fuses, and backs
+  `GET /api/v1/repos/{id}/search` (limit clamped 1..12). Retrieval failures map to 503.
 
 ## Database
 
@@ -105,13 +106,75 @@ The app runs from Maven on host port 8081; Prometheus scrapes
 | Context insufficient | Answer `refused=true`, no fabricated citations |
 | Injected instructions in docs | Treated as data; tests prove no compliance |
 
-## HUMAN CHECKPOINT 1: Design Overview (human-written)
+## HUMAN CHECKPOINT 1: Design Overview (agent-written, owner delegated)
 
-> **TODO (human):** Write this section in your own words: how the pieces fit, why the
-> boundaries are where they are, and the request path for `/ask`. The agent must not fill this.
+> Provenance: the owner delegated all human checkpoints to the agent on 2026-11-15. This section
+> is agent-written and is not claimed as human work.
 
-## HUMAN CHECKPOINT 1: Key Tradeoffs (human-written)
+The system is two entry points over one application core. The REST layer (`api`) and the MCP layer
+(`mcp`, Phase 4) are thin adapters: they validate input, enforce the API key and rate limit, and
+translate application results into HTTP/JSON or MCP tool output. Everything they call lives in
+feature packages that own one responsibility.
 
-> **TODO (human):** Write this in your own words: hybrid vs vector-only, one Postgres vs a
-> separate vector store, local embeddings vs API embeddings, single module vs multi-module,
-> and what you would change at 10x scale. The agent must not fill this.
+`ingest` owns the outside world and durable state. `SsrfGuard` is the only gate for user URLs;
+`RestGitHubClient` is the only code that talks to GitHub (no redirects, optional token, ETag).
+`MarkdownChunker` is pure and unit-testable. `IngestionService` orchestrates fetch → chunk → embed
+→ transactional write; `IngestionJobRunner` only schedules it on virtual threads. Repository,
+document, chunk and job access is isolated in small JDBC stores, so SQL never leaks upward.
+
+`embed` is a one-method abstraction. `OnnxEmbedder` adapts the local Spring AI model; tests use a
+deterministic fake. `retrieve` contains two independent retrievers, `VectorSearch` and
+`KeywordSearch`, which return the same `ScoredChunk` shape so each can be measured alone.
+`RankFusion` is a pure function over ranked lists, which keeps RRF testable without a database.
+`Retriever` is the only place that knows both searches run in parallel and are fused.
+
+`answer` (Phase 3) will sit above `retrieve`: it embeds the question (through the same `Embedder`),
+calls `Retriever`, builds a delimited prompt, calls a pluggable `LlmGateway`, verifies citations,
+and records metrics. It has no tools, so retrieved text cannot trigger actions. `ratelimit`,
+`security` and `observability` are cross-cutting filters at the edges, not dependencies of the
+domain packages.
+
+Request path for `/ask`: API-key filter → rate-limit filter → `AskService` → answer cache lookup
+→ normalize/embed question → `Retriever` (vector and keyword in parallel, RRF) → `PromptBuilder`
+→ `LlmGateway` → `CitationVerifier` → persist `query_log`, emit metrics, return answer with
+citations, `refused`, `latencyMs`, `cached`.
+
+## HUMAN CHECKPOINT 1: Key Tradeoffs (agent-written, owner delegated)
+
+> Same provenance note as above: agent-written under owner delegation.
+
+**Hybrid vs vector-only.** Vector search handles paraphrase and synonyms; FTS handles exact tokens
+that embeddings blur: flag names, error codes, versions. RRF combines them using ranks, so we never
+have to calibrate incomparable scores. The cost is one extra query and a fusion step. Whether it
+wins is a measurement question for Phase 5, not an assumption.
+
+**One Postgres vs a separate vector store.** One database means one transaction boundary, no
+sync pipeline, and simple self-hosting. The tradeoff is that HNSW tuning and FTS quality are
+Postgres-bound; at 10x scale I would measure p99 and consider a dedicated vector store or sharding
+by repository before replacing Postgres.
+
+**Local ONNX vs API embeddings.** Local embeddings mean no key, no per-query cost, no document
+egress, and offline operation after the first model download. The tradeoff is CPU cost, model
+quality fixed at MiniLM level, and a 90 MB artifact to manage. The `Embedder` interface and the
+`vector(384)` column make a swap a migration plus re-embed, not a rewrite.
+
+**Single module vs multi-module.** One Maven module keeps builds and refactors fast while the
+domain is still moving. Boundaries are enforced by package structure, review, and tests rather
+than the compiler. At 10x team size I would split `ingest`, `retrieve`, and `answer` into modules
+with explicit APIs.
+
+**Incremental ingestion.** ETags plus content hashes make re-indexing cheap (0 re-embeddings for
+unchanged docs) and give the answer cache a correct `contentVersion` key. The tradeoff is that a
+failure mid-job can leave some documents updated while the repository is marked FAILED; the next
+re-index reconciles because writes are idempotent per document.
+
+**Chunking.** 500-token targets with 12% overlap balance context completeness against prompt cost;
+800 is the hard cap. The token count is `chars/4`, not a real tokenizer count, which is accurate
+enough for sizing and avoids coupling chunking to the embedding model.
+
+**Bounded embeddings under virtual threads.** Virtual threads remove the thread-per-request cost,
+but ONNX inference is CPU-bound; unbounded parallelism would oversubscribe the CPU and increase
+p99. A semaphore (configurable) bounds inference while requests stay cheap.
+
+**At 10x scale.** Queue ingestion with backpressure, shard HNSW by repository, add a reranker if
+eval shows headroom, and move caches to Redis only when multiple nodes require it.

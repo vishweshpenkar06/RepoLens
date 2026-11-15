@@ -158,12 +158,15 @@ only, keyword only, hybrid), which the plan requires. `websearch_to_tsquery` is 
 input and supports quotes/negation.
 **Tradeoff:** scores from the two retrievers are not comparable, which is why fusion is rank-based.
 
-## ADR-0016: Human-checkpoint tests are tagged, not deleted
+## ADR-0016: Human checkpoints were delegated to the agent
 
-**Decision:** tests for human-owned code use JUnit tag `human-checkpoint`. Surefire excludes that
-tag by default; the Maven profile `checkpoints` includes it (`./mvnw -Pcheckpoints test`). The RRF
-stub throws `UnsupportedOperationException` until the human implements it.
-**Why:** the default build must stay green while human-owned code is intentionally unimplemented;
-deleting or `@Disabled`-ing the tests would hide the contract.
-**Tradeoff:** CI does not run checkpoint tests until the human completes a checkpoint (documented
-in `PROGRESS.md`).
+**Decision:** the project owner delegated all six HUMAN CHECKPOINTS to the agent on 2026-11-15.
+Checkpoint code and prose (RRF, checkpoint-1 design write-up, and later the token bucket, eval
+cases, benchmark interpretation, README results) are agent-written. Checkpoint tests run in the
+default build. `PROGRESS.md` records this provenance.
+**Why:** explicit owner instruction; the plan's default (stop and wait) would otherwise block the
+build on human-owned code.
+**Tradeoff / integrity note:** the MASTERPLAN appendix says to be honest on the resume. Do not
+claim these as personally written; the honest framing is "implemented with AI assistance, reviewed
+and understood by me" only after the owner actually reviews and can explain them. Provenance is
+also recorded in the affected Javadoc.

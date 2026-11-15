@@ -8,14 +8,9 @@ import com.vishwesh.repolens.ingest.DocumentKind;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-/**
- * Contract for the human-owned RRF implementation. Excluded from the default build; run with {@code
- * ./mvnw -Pcheckpoints test}.
- */
-@Tag("human-checkpoint")
+/** Contract for Reciprocal Rank Fusion; runs in the default build. */
 class RankFusionContractTests {
 
   private static final double EPSILON = 1e-9;
