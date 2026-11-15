@@ -71,6 +71,16 @@ class McpServerIntegrationTests {
         repo,
         new Chunk(0, "Docker", "docker compose", MarkdownChunker.estimateTokens("docker compose")),
         FakeEmbedder.vectorFor("docker compose"));
+    documents.upsert(
+        repo,
+        new DocumentSource(
+            DocumentKind.DOC,
+            "docs/long.md",
+            "https://github.com/acme/demo/blob/main/docs/long.md",
+            "Long",
+            "x".repeat(25_000),
+            "\"e2\""),
+        "h2");
     client = client("test-mcp-key");
   }
 
@@ -127,6 +137,14 @@ class McpServerIntegrationTests {
         .contains("docker compose")
         .contains(RepoLensMcpTools.UNTRUSTED_BEGIN)
         .contains(RepoLensMcpTools.UNTRUSTED_END);
+  }
+
+  @Test
+  void truncatesLongDocuments() {
+    String text = call("get_document", Map.of("repo", "acme/demo", "path", "docs/long.md"));
+
+    assertThat(text).contains("\"truncated\":true");
+    assertThat(text.length()).isLessThan(21_000).isGreaterThan(19_500);
   }
 
   @Test

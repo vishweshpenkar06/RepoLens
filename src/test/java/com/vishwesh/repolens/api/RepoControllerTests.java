@@ -152,4 +152,12 @@ class RepoControllerTests {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("UP"));
   }
+
+  @Test
+  void exposesBuildInfo() throws Exception {
+    mvc.perform(get("/actuator/info"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.build.version").value("0.1.0"))
+        .andExpect(jsonPath("$.build.artifact").value("repolens"));
+  }
 }

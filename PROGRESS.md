@@ -106,6 +106,20 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
   and GitHub repo/push/release `v0.1.0` (no git remote configured).
 - CHECKPOINT 6 results/demo prose is agent-written under the delegation; the video is not.
 
+## Polish pass (post-Phase 6)
+
+- Per-request access log with the validated request id in MDC; verified `requestId` appears in ECS
+  JSON logs in both host and container runs (actuator requests excluded to avoid probe spam).
+- `/actuator/info` exposes build artifact/version via the Spring Boot build-info goal.
+- Fixed streaming LLM latency being recorded under the retrieval metric; it now uses
+  `repolens_llm_latency`.
+- API key hash comparison uses `MessageDigest.isEqual` (constant-time) after the indexed lookup.
+- Added `docs/API.md` (payloads, errors, rate-limit headers, SSE events); README badges, default
+  demo-key warning, documentation index updated.
+- Runtime-verified: Prometheus scrapes both compose and host targets (`up`), Grafana has the
+  10-panel RepoLens Overview dashboard, container logs include request IDs.
+- New tests: build-info, Prometheus endpoint, rate-limit rejection counter, MCP document truncation.
+
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns

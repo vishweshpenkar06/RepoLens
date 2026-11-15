@@ -2,6 +2,7 @@ package com.vishwesh.repolens.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.vishwesh.repolens.TestcontainersConfiguration;
 import com.vishwesh.repolens.support.TestFakes;
 import jakarta.servlet.http.HttpServletResponse;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,6 +71,14 @@ class SecurityFilterTests {
 
     mvc.perform(get("/api/v1/repos").header(ApiKeyFilter.HEADER, "test-secret-key"))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void exposesPrometheusMetricsWithoutApiKey() throws Exception {
+    mvc.perform(get("/actuator/prometheus"))
+        .andExpect(status().isOk())
+        .andExpect(content().string(Matchers.containsString("jvm_memory_used_bytes")))
+        .andExpect(content().string(Matchers.containsString("repolens_cache_hits_total")));
   }
 
   @Test

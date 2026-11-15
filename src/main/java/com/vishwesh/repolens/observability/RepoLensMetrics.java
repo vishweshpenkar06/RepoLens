@@ -65,6 +65,10 @@ public class RepoLensMetrics {
     }
   }
 
+  public void recordLlmStream(Duration latency) {
+    Timer.builder("repolens.llm.latency").register(registry).record(latency);
+  }
+
   public void llmError() {
     llmErrors.increment();
   }

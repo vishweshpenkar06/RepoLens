@@ -1,5 +1,10 @@
 # RepoLens
 
+[![CI](https://github.com/vishweshpenkar06/RepoLens/actions/workflows/ci.yml/badge.svg)](https://github.com/vishweshpenkar06/RepoLens/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/projects/jdk/25/)
+[![Spring Boot 4.1.2](https://img.shields.io/badge/Spring%20Boot-4.1.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
+
 Self-hosted Java service that ingests a GitHub repository's documentation and issues, then answers
 questions about it with verified citations via a REST API and an MCP server for AI assistants.
 
@@ -26,6 +31,9 @@ cp .env.example .env
 docker compose up -d
 curl localhost:8081/actuator/health
 ```
+
+For local experiments only, Compose falls back to `demo-key-change-me` when `REPOLENS_API_KEY` is
+empty; set a real key before exposing anything.
 
 Develop the app on the host against containerized Postgres:
 
@@ -142,6 +150,7 @@ Claude Desktop config and a generic client example. HTTP requests need `X-API-Ke
 
 ## Documentation
 
+- `docs/API.md` — endpoints, payloads, errors, headers, SSE events
 - `docs/ARCHITECTURE.md` — components, data flow, failure modes
 - `docs/DECISIONS.md` — ADRs
 - `docs/ENVIRONMENT.md` — verified toolchain

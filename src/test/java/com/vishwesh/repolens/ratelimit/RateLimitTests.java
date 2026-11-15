@@ -17,6 +17,7 @@ import com.vishwesh.repolens.ingest.store.DocumentStore;
 import com.vishwesh.repolens.ingest.store.RepositoryStore;
 import com.vishwesh.repolens.support.FakeEmbedder;
 import com.vishwesh.repolens.support.TestFakes;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,7 @@ class RateLimitTests {
   @Autowired private DocumentStore documents;
   @Autowired private ChunkStore chunks;
   @Autowired private JdbcClient jdbc;
+  @Autowired private MeterRegistry meterRegistry;
 
   @BeforeEach
   void reset() {
@@ -97,6 +99,9 @@ class RateLimitTests {
         .andExpect(status().isTooManyRequests())
         .andExpect(header().exists("Retry-After"))
         .andExpect(header().string("RateLimit-Scope", "ASK"));
+
+    assertThat(meterRegistry.get("repolens.ratelimit.rejected").counter().count())
+        .isGreaterThanOrEqualTo(1);
   }
 
   @Test
