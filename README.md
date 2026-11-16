@@ -258,6 +258,9 @@ Keys live in `.env` (gitignored) or the environment only.
 | `RATE_LIMIT_ASK_CAPACITY` / `..._ASK_REFILL` | `10` / `0.5` | `/ask` burst / tokens per second |
 | `RATE_LIMIT_SEARCH_CAPACITY` / `..._SEARCH_REFILL` | `30` / `5` | `/search` burst / refill |
 | `RATE_LIMIT_GENERAL_CAPACITY` / `..._GENERAL_REFILL` | `60` / `10` | other API and MCP calls |
+| `DB_POOL_SIZE` / `DB_MIN_IDLE` | `20` / `5` | main Hikari pool for repositories and FTS |
+| `VECTOR_POOL_SIZE` | `10` | dedicated iterative-HNSW pool for vector search |
+| `REPOLENS_API_KEY_CACHE_TTL` | `60s` | auth cache TTL (`0s` disables; revocation is delayed by this) |
 
 ### Tuning (`application.yml`, `repolens.*`)
 
@@ -391,17 +394,20 @@ Docker, fake LLM with 300 ms simulated latency. Full methodology and commands:
 
 | Benchmark | Result |
 |---|---|
-| Search, 200 VUs (virtual threads) | 273.5 req/s, p95 664 ms, 0 errors |
-| Search, 200 VUs (platform threads) | 278.5 req/s, p95 690 ms, 0 errors |
+| Search baseline, 200 VUs | 127.7 req/s, p95 1,527 ms (pool 10, no auth cache) |
+| **Search after hot-path fixes, 200 VUs** | **2,281.5 req/s, p95 4 ms** (dedicated iterative-HNSW pool) |
+| Search after fixes, platform threads | 2,272.7 req/s, p95 4–5 ms |
+| Retrieval p95 after fixes | vector 3.1 ms, keyword 2.1 ms, fuse 1.0 ms |
 | `/ask` cache hit (fake LLM 300 ms) | 808 req/s, p95 6 ms |
 | `/ask` cache bypass (unique questions) | 53 req/s, p95 400 ms |
-| Retrieval p95 | vector 156.6 ms, keyword 134.2 ms, fuse ≤1 ms |
 | Ingestion (301 docs / 319 chunks) | 12.03 s at concurrency 2, 11.15 s at concurrency 8 |
 
-Honest finding: **virtual threads did not help DB-bound search** (within noise); the Hikari pool and
-Postgres are the bottleneck. Caching is the dominant `/ask` lever (15x throughput). Embedding
-concurrency 2→8 improved ingestion only ~7% because GitHub fetching dominates at this size. Single
-runs on a shared desktop — treat ±10% as noise.
+The search jump came from a dedicated pgvector **iterative-HNSW pool** replacing a CPU-heavy
+sequential scan and connection queueing; auth/repository caches and a configurable pool added ~22%
+before that. Honest finding: **virtual threads did not help DB-bound search** (identical within
+noise before and after). Caching is the dominant `/ask` lever (15x throughput). Embedding concurrency
+2→8 improved ingestion only ~7% because GitHub fetching dominates at this size. Host contention and
+run spreads are documented in `docs/BENCHMARKS.md`.
 
 ## Observability
 

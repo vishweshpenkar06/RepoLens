@@ -341,3 +341,23 @@ metrics (does not measure real answer quality), shorter contexts (would bias ret
 numbers also reflect the model change. The judge is a different model and only 20 answers are judged.
 Reports record models, quotas, sample sizes and per-case outcomes; cases remain agent-drafted and
 marked for human review.
+
+## ADR-0030: Search hot-path fixes (auth cache, vector pool, iterative HNSW)
+
+**Decision:** (1) cache authenticated API-key hashes for 60 s (`REPOLENS_API_KEY_CACHE_TTL`, `0s`
+disables); (2) cache positive repository existence for 10 min in `SearchService`; (3) make the Hikari
+pool configurable (`DB_POOL_SIZE`, default 20); (4) give vector search a dedicated Hikari pool
+(`VECTOR_POOL_SIZE`, default 10) with `hnsw.iterative_scan=relaxed_order`, `enable_seqscan=off`,
+`enable_bitmapscan=off`. The main pool serves FTS, repositories and ingestion.
+**Why:** profiling at 200 VUs showed 255 requests queued on a 10-connection pool while Postgres used
+~18 cores. Each request made four DB calls. Idle vector search used a sequential scan (2.4 ms);
+pdvector's iterative HNSW returned all 30 filtered rows in 0.85 ms. Caching auth/repository removes
+two calls, and the dedicated pool stops vector scans competing with FTS. Result: search went from
+128 req/s / p95 1,527 ms to 2,281 req/s / p95 4 ms on the same 967-chunk dataset.
+**Alternatives:** pool 40 (measured: no gain; CPU-bound), forcing plain HNSW (16 ms and underfilled),
+global `enable_seqscan=off` (would break FTS plans), search-result caching (would game the benchmark
+and hide retrieval cost), bigger machine (not a code fix).
+**Tradeoff:** revoked keys can remain valid for up to the cache TTL; the vector pool adds ~10
+connections and assumes pgvector ≥0.8 (iterative scan). The main pool keeps normal planner behavior.
+**Finding:** virtual and platform threads were identical before and after (2,281.5 vs 2,272.7 req/s,
+p95 4 vs 4–5 ms) because the endpoint is DB-bound; virtual threads do not make SQL faster.

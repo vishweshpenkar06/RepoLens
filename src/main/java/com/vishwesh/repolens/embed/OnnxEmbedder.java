@@ -3,6 +3,7 @@ package com.vishwesh.repolens.embed;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.vishwesh.repolens.config.RepoLensProperties;
+import com.vishwesh.repolens.observability.RepoLensMetrics;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Locale;
@@ -28,10 +29,13 @@ public class OnnxEmbedder implements Embedder {
   private final int dimensions;
   private final AtomicBoolean ready = new AtomicBoolean(false);
   private final Cache<String, float[]> queryCache;
+  private final RepoLensMetrics metrics;
 
-  public OnnxEmbedder(EmbeddingModel embeddingModel, RepoLensProperties properties) {
+  public OnnxEmbedder(
+      EmbeddingModel embeddingModel, RepoLensProperties properties, RepoLensMetrics metrics) {
     this.embeddingModel = embeddingModel;
     this.dimensions = properties.embedding().dimensions();
+    this.metrics = metrics;
     this.queryCache =
         Caffeine.newBuilder()
             .expireAfterWrite(properties.cache().embeddingTtl())
@@ -68,7 +72,16 @@ public class OnnxEmbedder implements Embedder {
   @Override
   public float[] embed(String text) {
     String key = text == null ? "" : text.strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
-    return queryCache.get(key, ignored -> embedAll(List.of(text)).getFirst());
+    long started = System.nanoTime();
+    float[] cached = queryCache.getIfPresent(key);
+    if (cached != null) {
+      metrics.recordEmbedding(java.time.Duration.ofNanos(System.nanoTime() - started), true);
+      return cached;
+    }
+    float[] vector = embedAll(List.of(text)).getFirst();
+    queryCache.put(key, vector);
+    metrics.recordEmbedding(java.time.Duration.ofNanos(System.nanoTime() - started), false);
+    return vector;
   }
 
   @Override

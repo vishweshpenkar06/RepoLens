@@ -149,6 +149,25 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
   Studio free tier only 20 requests/day. Reports record models and quotas.
 - Default build: 188 tests green, coverage gates pass.
 
+## Phase B — Performance honesty (complete)
+
+- Profiled the 200-VU search path: requests were queued on a 10-connection Hikari pool while Postgres
+  used ~18 cores; each request made 4 DB calls. Idle vector search was a 2.4 ms seq scan of 967
+  chunks; the ONNX embedding cache was negligible (0.06 s for 7,221 hits).
+- Fixes: API-key auth cache (60 s, configurable), positive repository cache, configurable Hikari pool
+  (20), and a dedicated vector pool using pgvector iterative HNSW. Plain forced HNSW was slower
+  (16 ms) and underfilled; iterative scan returned all 30 rows in 0.85 ms.
+- Measured medians of 3 runs each (same 967-chunk repo, host near idle):
+  - baseline pool 10 / no auth cache: **127.7 req/s, p95 1,527 ms** (VT); 121.2 req/s, p95 1,530 (PT)
+  - + auth/repo cache, pool 20: 156.1 req/s, p95 1,152 ms (VT)
+  - + iterative-HNSW vector pool: **2,281.5 req/s, p95 4 ms** (VT); 2,272.7 req/s, p95 4–5 ms (PT)
+- Retrieval after: vector p95 3.1 ms, keyword 2.1 ms, fuse 1.0 ms. Main pool acquire 0.003 ms.
+- **Virtual threads do not help search** (DB-bound); difference is noise before and after. They are
+  expected to matter for the LLM path and ingestion.
+- Caveat recorded: shared host; final runs near idle after stopping an unrelated dinesense stack.
+- `docs/BENCHMARKS.md` rewritten with machine specs, commands, spreads, before/after and caveats.
+- 188 tests green.
+
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns

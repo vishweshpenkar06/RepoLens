@@ -73,6 +73,13 @@ public class RepoLensMetrics {
     llmErrors.increment();
   }
 
+  public void recordEmbedding(Duration latency, boolean cached) {
+    Timer.builder("repolens.embedding.latency")
+        .tag("cached", Boolean.toString(cached))
+        .register(registry)
+        .record(latency);
+  }
+
   public void cacheHit() {
     cacheHits.increment();
   }

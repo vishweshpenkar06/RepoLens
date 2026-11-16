@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
       "repolens.embedding.warmup=false",
       "repolens.security.api-key-required=true",
       "repolens.security.bootstrap-api-key=test-secret-key",
+      "repolens.security.api-key-cache-ttl=0s",
       "repolens.rate-limit.enabled=false"
     })
 @AutoConfigureMockMvc
