@@ -217,6 +217,9 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
   general 30/1.
 - Demo re-recorded as RepoPrism (`docs/demo.gif` + `docs/demo.cast`). README has the live URL, demo-key
   policy, temporary-tunnel warning and deployment status. Release notes prepared.
+- CI's gitleaks step rejected a demo key committed in the README; removed it, rotated the demo key,
+  revoked the old hash in Neon, and moved the release tag to the cleaned commit. The demo key is shared
+  out of band only.
 - Renamed the GitHub repository to `vishweshpenkar06/RepoPrism`, pushed the code and tag `v0.1.0`,
   and published the GitHub release. CI builds the RepoPrism image on `master`/tags.
 - 188 tests green.

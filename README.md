@@ -26,13 +26,13 @@ demos, or any OpenAI-compatible endpoint for real answers.
 ### Live demo
 
 **URL:** <https://picture-wallpapers-organizational-valves.trycloudflare.com>
-**Header:** `X-API-Key: 0db27e332ad7594d0e30e4798a050e65b639626e30c22dea`
+**Header:** `X-API-Key: <demo key>` (the owner shares the demo key out of band; it is not committed)
 Seeded repos: `encode/httpx`, `Kludex/starlette`. Try `GET /api/v1/repos/1/search?q=timeouts&k=5`
 or `POST /api/v1/repos/1/ask`.
 
-The key is public and rate limited (ask 5 burst / 0.05 per s, search 20 / 2, general 30 / 1). Do not
-reuse it. The instance is a **temporary Cloudflare Quick Tunnel** from a workstation: it has no SLA
-and stops when the host sleeps or the tunnel stops. Keep the host awake during a demo. Details:
+The demo key is public by design but rate limited (ask 5 burst / 0.05 per s, search 20 / 2, general
+30 / 1). The instance is a **temporary Cloudflare Quick Tunnel** from a workstation: it has no SLA
+and stops when the host sleeps or the tunnel stops. Details:
 [`deploy/CLOUDFLARE_TUNNEL.md`](deploy/CLOUDFLARE_TUNNEL.md).
 
 ### 30-second demo
