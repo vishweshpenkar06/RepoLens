@@ -61,7 +61,7 @@ demos, or any OpenAI-compatible endpoint for real answers.
 | MCP | Four tools over streamable HTTP and stdio, LLM-oriented descriptions, untrusted-content delimiters |
 | Security | SSRF guard, hashed/revocable API keys, fail-closed auth, per-key token-bucket limits, prompt-injection defenses |
 | Observability | Micrometer/Prometheus metrics, Grafana dashboard, structured JSON logs with request IDs, readiness including the embedding model |
-| Quality | 182 tests, Testcontainers, WireMock, JaCoCo gates, Spotless, gitleaks, Dependabot, k6 load tests, 52-case eval harness |
+| Quality | 188 tests, Testcontainers, WireMock, JaCoCo gates, Spotless, gitleaks, Dependabot, k6 load tests, 72-case eval harness with real-model run |
 | Packaging | Multi-stage Dockerfile, non-root uid 1001, read-only rootfs, healthcheck, GHCR publishing, Compose stacks for dev and prod |
 
 ## Architecture
@@ -357,34 +357,31 @@ stale answers. Both caches are in-process (Caffeine).
 
 ## Evaluation
 
-`eval/cases.jsonl` contains **52 cases** over two real repositories (`encode/httpx`,
-`Kludex/starlette`) plus a synthetic malicious-document fixture:
+`eval/cases.jsonl` contains **72 cases** across three real repositories (`encode/httpx`,
+`Kludex/starlette`, `encode/httpcore`) plus a malicious-document fixture:
 
-- 36 factual, 4 multi-hop, 8 unanswerable, 4 prompt-injection.
-- Retrieval metrics use real ONNX embeddings and PostgreSQL; answer metrics are structural because
-  the default LLM is the deterministic fake.
+- 48 factual, 8 multi-hop, 12 unanswerable, 4 prompt-injection.
+- Every case is agent-drafted and marked `needs_human_review`.
+- Retrieval metrics use real ONNX embeddings and PostgreSQL. A real-model run uses
+  `openai/gpt-oss-20b` for answers and a separate `qwen/qwen3.8-27b` judge.
 
-Run:
-
-```bash
-./mvnw -Peval verify
-```
-
-Latest report ([`eval/reports/2026-11-15.md`](eval/reports/2026-11-15.md)):
+Real run ([`eval/reports/2026-11-16-groq.md`](eval/reports/2026-11-16-groq.md), 56 retrieval cases):
 
 | Mode | hit@3 | hit@6 | MRR@6 |
 |---|---|---|---|
-| Vector only | 82.5% | 85.0% | 0.688 |
-| Keyword only | 57.5% | 65.0% | 0.530 |
-| **Hybrid (RRF)** | **87.5%** | **92.5%** | **0.765** |
+| Vector only | 83.9% | 87.5% | 0.699 |
+| Keyword only | 46.4% | 51.8% | 0.432 |
+| **Hybrid (RRF)** | **85.7%** | **92.9%** | **0.715** |
 
-Chunk-size variants all reached 92.5% hit@6 (300: 898 chunks, 500: 819, 800: 792). Structural
-checks: 100% citation validity, 0% false refusals, 100% refusal recall on unanswerable cases, 100%
-injection blocked.
+Hybrid beats vector-only by **5.4 points at hit@6** — real, but modest. Answers: **0 errors**,
+**100% citation validity**, 2/56 false refusals (3.6%), **100% refusal recall**, **100% injection
+blocked**, and **90% grounded** on 20 LLM-judged answers (average 4.70/5). Before the fixes the same
+harness had 8 provider/JSON errors and 12.5% false refusals; see the before/after table in
+[`docs/EVAL.md`](docs/EVAL.md).
 
-**Limitations:** answer quality and real-provider injection resistance need a real API key; the
-harness is ready but those numbers are not claimed yet. Cases were curated by the agent under
-delegated Human Checkpoint 4. Details: [`docs/EVAL.md`](docs/EVAL.md).
+Run the fake-provider check (`./mvnw -Peval verify`) or a real-provider run with `.env` loaded.
+Details, limitations and the committed judge prompt: [`docs/EVAL.md`](docs/EVAL.md),
+[`eval/judge-prompt.md`](eval/judge-prompt.md).
 
 ## Benchmarks
 
@@ -491,9 +488,10 @@ is not live yet; it needs a host/domain and an LLM provider key from the owner.
 ## Development
 
 ```bash
-./mvnw verify                 # 182 tests, Testcontainers, Spotless, JaCoCo gates
+./mvnw verify                 # 188 tests, Testcontainers, Spotless, JaCoCo gates
 ./mvnw spotless:apply         # format
-./mvnw -Peval verify          # evaluation harness (network, ~2 min)
+./mvnw -Peval verify          # eval with fake LLM (network, ~3 min)
+# real eval: set -a; source .env; set +a; GITHUB_TOKEN=$(gh auth token) ./mvnw -Peval verify
 ./mvnw -DskipTests package    # build target/repolens-0.1.0.jar
 ```
 
@@ -507,7 +505,7 @@ k6 run -e BASE_URL=http://localhost:8081 -e API_KEY=loadtest-key -e REPO_ID=1 lo
 k6 run -e BASE_URL=http://localhost:8081 -e API_KEY=loadtest-key -e REPO_ID=1 load/ask_stubbed.js
 ```
 
-Architecture decisions live in [`docs/DECISIONS.md`](docs/DECISIONS.md) (28 ADRs). Keep secrets out
+Architecture decisions live in [`docs/DECISIONS.md`](docs/DECISIONS.md) (29 ADRs). Keep secrets out
 of the repository; use environment variables. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 **Human checkpoints:** the six human-owned checkpoints in `MASTERPLAN.md` were delegated to the
@@ -517,10 +515,10 @@ Provenance is recorded in `PROGRESS.md` and the affected Javadoc.
 
 ## Limitations
 
-- **Systematic real-provider quality is not measured yet.** Retrieval metrics are real; the
-  committed answer checks use the fake LLM. A live Groq `openai/gpt-oss-120b` smoke test produced
-  grounded answers with valid citations and a correct refusal; the full eval suite still needs a
-  real-provider run.
+- **Real-provider numbers use free-tier models.** Answers were measured on `openai/gpt-oss-20b`
+  with top-k 5 (one below the product default) and the judge on `qwen/qwen3.8-27b`, because of
+  Groq's 200k-token daily quota. They are real but not frontier-model numbers; the judge covered
+  20 of 56 answerable cases.
 - **Single node.** Caches and rate limiting are in-process; multi-node needs Redis/shared state.
 - **Documentation scope.** Only README/top-level/docs markdown and up to 300 issues; source code is
   not indexed; `.rst`, `.mdx`, and nested markdown outside `docs/` are skipped.

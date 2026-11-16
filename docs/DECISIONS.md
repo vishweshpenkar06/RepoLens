@@ -323,3 +323,21 @@ tmpfs; without `exec` startup fails with "failed to map segment from shared obje
 **Tradeoff:** Boot 4 `jarmode=tools` extraction is `jar + lib/` rather than the older four layer
 directories, so there are two image layers (dependencies + app) instead of four; still avoids
 rebuilding dependencies on app-only changes.
+
+## ADR-0029: Real-model eval with an LLM judge on free-tier limits
+
+**Decision:** the eval harness runs against any configured OpenAI-compatible provider. Real runs
+use a separate judge model (`qwen/qwen3.8-27b`) from the answer model (`openai/gpt-oss-20b`), a
+committed judge prompt (`eval/judge-prompt.md`), answer top-k 5, and per-case details in the report.
+The gateway retries 429/5xx and provider JSON-validation 400s with bounded backoff, and the output
+cap is configurable (`LLM_MAX_TOKENS`, default 2048).
+**Why:** free tiers impose per-minute and per-day token quotas. A 120b answer model exceeded its
+200k-token daily budget after one partial run and regularly hit JSON validation errors at an 800
+token cap. A 20b answer model plus a separate judge model fits inside two independent daily budgets,
+and 2048 output tokens eliminates truncated JSON documents.
+**Alternatives:** paid provider (not approved), one model for both (exceeds daily quota), fake-only
+metrics (does not measure real answer quality), shorter contexts (would bias retrieval quality).
+**Tradeoff:** answer metrics are for `gpt-oss-20b`, not the stronger 120b model, so before/after
+numbers also reflect the model change. The judge is a different model and only 20 answers are judged.
+Reports record models, quotas, sample sizes and per-case outcomes; cases remain agent-drafted and
+marked for human review.

@@ -5,6 +5,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -90,6 +91,66 @@ class OpenAiCompatibleLlmGatewayTests {
     assertThatThrownBy(() -> unconfigured.complete(new LlmRequest("s", "u")))
         .isInstanceOf(LlmException.class)
         .hasMessageContaining("LLM_MODEL");
+  }
+
+  @Test
+  void retriesAfterRateLimit() {
+    server.stubFor(
+        post(urlEqualTo("/v1/chat/completions"))
+            .inScenario("rate-limit")
+            .whenScenarioStateIs(STARTED)
+            .willReturn(aResponse().withStatus(429).withHeader("Retry-After", "0"))
+            .willSetStateTo("ok"));
+    server.stubFor(
+        post(urlEqualTo("/v1/chat/completions"))
+            .inScenario("rate-limit")
+            .whenScenarioStateIs("ok")
+            .willReturn(ok("{\"choices\":[{\"message\":{\"content\":\"ok\"}}]}")));
+
+    assertThat(gateway.complete(new LlmRequest("s", "u"))).isEqualTo("ok");
+  }
+
+  @Test
+  void retriesOnJsonValidationFailure() {
+    server.stubFor(
+        post(urlEqualTo("/v1/chat/completions"))
+            .inScenario("json-retry")
+            .whenScenarioStateIs(STARTED)
+            .willReturn(
+                aResponse()
+                    .withStatus(400)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(
+                        "{\"error\":{\"code\":\"json_validate_failed\","
+                            + "\"message\":\"Failed to validate JSON\"}}"))
+            .willSetStateTo("ok"));
+    server.stubFor(
+        post(urlEqualTo("/v1/chat/completions"))
+            .inScenario("json-retry")
+            .whenScenarioStateIs("ok")
+            .willReturn(ok("{\"choices\":[{\"message\":{\"content\":\"ok\"}}]}")));
+
+    assertThat(gateway.complete(new LlmRequest("s", "u"))).isEqualTo("ok");
+  }
+
+  @Test
+  void includesProviderBodyInErrors() {
+    server.stubFor(
+        post(urlEqualTo("/v1/chat/completions"))
+            .willReturn(aResponse().withStatus(401).withBody("bad key")));
+
+    assertThatThrownBy(() -> gateway.complete(new LlmRequest("s", "u")))
+        .isInstanceOf(LlmException.class)
+        .hasMessageContaining("401")
+        .hasMessageContaining("bad key");
+  }
+
+  @Test
+  void parsesGroqRateLimitDurations() {
+    assertThat(OpenAiCompatibleLlmGateway.parseDurationMillis("585ms")).isEqualTo(585);
+    assertThat(OpenAiCompatibleLlmGateway.parseDurationMillis("1.5s")).isEqualTo(1500);
+    assertThat(OpenAiCompatibleLlmGateway.parseDurationMillis("1m26.4s")).isEqualTo(86_400);
+    assertThat(OpenAiCompatibleLlmGateway.parseDurationMillis("nonsense")).isZero();
   }
 
   @Test

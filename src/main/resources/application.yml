@@ -102,9 +102,9 @@ repolens:
     api-key: ${LLM_API_KEY:}
     model: ${LLM_MODEL:}
     timeout: 60s
-    max-tokens: 800
+    max-tokens: ${LLM_MAX_TOKENS:2048}
     temperature: 0.0
-    json-mode: true
+    json-mode: ${LLM_JSON_MODE:true}
     fake-latency: ${LLM_FAKE_LATENCY:0ms}
   cache:
     answer-ttl: 1h

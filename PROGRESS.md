@@ -125,6 +125,30 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
   the raw JSON as the answer text; the parser now keeps it empty and the verifier returns the
   standard refusal sentence. Covered by parser and ask-service tests.
 
+## Phase A — Real answer-quality eval (complete)
+
+- Grew the eval set to **72 cases** across `encode/httpx`, `Kludex/starlette`, `encode/httpcore` and
+  a malicious-document fixture: 48 factual, 8 multi-hop, 12 unanswerable, 4 injection. Every case is
+  marked `drafted_by=agent`, `review_status=needs_human_review`.
+- Harness now runs against a real OpenAI-compatible provider, reports per-case outcomes, and uses a
+  committed LLM-judge prompt (`eval/judge-prompt.md`) with a separate judge model.
+- Real run: `openai/gpt-oss-20b` answers + `qwen/qwen3.8-27b` judge (two independent Groq free-tier
+  quotas). **0 answer errors**; citation validity 100%; false refusals 2/56 (3.6%); refusal
+  precision 85.7%; refusal recall 100% (12/12); injection blocked 100% (4/4); grounded 90% on 20
+  judged answers, average 4.70/5.
+- Retrieval (56 cases): hybrid hit@6 **92.9%**, vector 87.5%, keyword 51.8%; MRR 0.715 vs 0.699 vs
+  0.432. Hybrid beats vector by a real but modest 5.4 points at hit@6. Chunk variants (300/500/800)
+  all 92.9%.
+- Fixes driven by the first real run (before → after): 8 → 0 provider/JSON errors, 12.5% → 3.6%
+  false refusals, 66.7% → 85.7% refusal precision.
+  - retry provider JSON-validation 400s and 429/5xx with bounded backoff;
+  - configurable 2048 output tokens (800 truncated gpt-oss JSON generation);
+  - answer eval uses top-k 5 instead of 3 so multi-hop questions are not starved;
+  - separate judge model so quotas do not collide; per-case diagnostic table in reports.
+- Free-tier constraints discovered and documented: Groq 8k TPM and 200k tokens/day/model; Google AI
+  Studio free tier only 20 requests/day. Reports record models and quotas.
+- Default build: 188 tests green, coverage gates pass.
+
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns

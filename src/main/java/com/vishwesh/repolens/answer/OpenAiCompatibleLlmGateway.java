@@ -11,6 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,10 @@ import tools.jackson.databind.json.JsonMapper;
 public class OpenAiCompatibleLlmGateway implements LlmGateway {
 
   private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleLlmGateway.class);
+  private static final int MAX_ATTEMPTS = 4;
+  private static final int MAX_THROTTLE_ATTEMPTS = 6;
+  private static final long MAX_BACKOFF_MILLIS = 60_000;
+  private static final Pattern DURATION_PART = Pattern.compile("(\\d+(?:\\.\\d+)?)(ms|s|m)");
 
   private final RepoLensProperties.Llm config;
   private final JsonMapper objectMapper;
@@ -108,20 +114,44 @@ public class OpenAiCompatibleLlmGateway implements LlmGateway {
     if (config.apiKey() != null && !config.apiKey().isBlank()) {
       builder.header("Authorization", "Bearer " + config.apiKey());
     }
-    HttpResponse<T> response;
-    try {
-      response = httpClient.send(builder.build(), handler);
-    } catch (IOException e) {
-      throw new LlmException("LLM request failed: " + completionsUri, e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new LlmException("Interrupted while calling the LLM", e);
+    HttpRequest httpRequest = builder.build();
+    for (int attempt = 0; ; attempt++) {
+      HttpResponse<T> response;
+      try {
+        response = httpClient.send(httpRequest, handler);
+      } catch (IOException e) {
+        if (attempt + 1 < MAX_ATTEMPTS) {
+          sleep(backoffMillis(attempt));
+          continue;
+        }
+        throw new LlmException("LLM request failed: " + completionsUri, e);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new LlmException("Interrupted while calling the LLM", e);
+      }
+      int status = response.statusCode();
+      boolean jsonValidationFailure =
+          status == 400
+              && response.body() instanceof String responseBody
+              && isJsonValidationFailure(responseBody);
+      int maxAttempts = status == 429 ? MAX_THROTTLE_ATTEMPTS : MAX_ATTEMPTS;
+      if ((status == 429 || status >= 500 || jsonValidationFailure) && attempt + 1 < maxAttempts) {
+        long wait = status == 429 ? retryDelayMillis(response, attempt) : backoffMillis(attempt);
+        log.warn("LLM provider returned {}; retrying in {} ms", status, wait);
+        sleep(wait);
+        continue;
+      }
+      if (status != 200) {
+        throw new LlmException(
+            "LLM provider returned HTTP "
+                + status
+                + " for "
+                + completionsUri
+                + ": "
+                + truncate(response.body()));
+      }
+      return response;
     }
-    if (response.statusCode() != 200) {
-      throw new LlmException(
-          "LLM provider returned HTTP " + response.statusCode() + " for " + completionsUri);
-    }
-    return response;
   }
 
   private String requestBody(LlmRequest request, boolean streaming) {
@@ -143,6 +173,79 @@ public class OpenAiCompatibleLlmGateway implements LlmGateway {
       return objectMapper.writeValueAsString(body);
     } catch (RuntimeException e) {
       throw new LlmException("Cannot serialize LLM request", e);
+    }
+  }
+
+  private static boolean isJsonValidationFailure(String body) {
+    return body.contains("Failed to validate JSON")
+        || body.contains("json_validate_failed")
+        || body.contains("failed_generation");
+  }
+
+  private static String truncate(Object body) {
+    String text = body == null ? "" : body.toString();
+    return text.length() <= 300 ? text : text.substring(0, 300);
+  }
+
+  private static long backoffMillis(int attempt) {
+    return Math.min(MAX_BACKOFF_MILLIS, 1000L * (1L << attempt));
+  }
+
+  private static long retryDelayMillis(HttpResponse<?> response, int attempt) {
+    String body = response.body() == null ? "" : response.body().toString();
+    Matcher googleRetry = Pattern.compile("\"retryDelay\"\\s*:\\s*\"([0-9.]+)s\"").matcher(body);
+    if (googleRetry.find()) {
+      return Math.min(MAX_BACKOFF_MILLIS, (long) (Double.parseDouble(googleRetry.group(1)) * 1000));
+    }
+    String retryAfter = response.headers().firstValue("Retry-After").orElse(null);
+    if (retryAfter != null) {
+      try {
+        return Math.min(MAX_BACKOFF_MILLIS, Long.parseLong(retryAfter.trim()) * 1000L);
+      } catch (NumberFormatException ignored) {
+        // fall through to token reset headers
+      }
+    }
+    String reset =
+        response
+            .headers()
+            .firstValue("X-RateLimit-Reset-Tokens")
+            .or(() -> response.headers().firstValue("X-RateLimit-Reset-Requests"))
+            .orElse(null);
+    if (reset != null) {
+      long parsed = parseDurationMillis(reset);
+      if (parsed > 0) {
+        return Math.min(MAX_BACKOFF_MILLIS, parsed);
+      }
+    }
+    return Math.max(5_000, backoffMillis(attempt + 2));
+  }
+
+  static long parseDurationMillis(String value) {
+    Matcher matcher = DURATION_PART.matcher(value);
+    long total = 0;
+    boolean found = false;
+    while (matcher.find()) {
+      found = true;
+      double amount = Double.parseDouble(matcher.group(1));
+      total +=
+          switch (matcher.group(2)) {
+            case "ms" -> (long) amount;
+            case "m" -> (long) (amount * 60_000);
+            default -> (long) (amount * 1000);
+          };
+    }
+    return found ? total : 0;
+  }
+
+  private static void sleep(long millis) {
+    if (millis <= 0) {
+      return;
+    }
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new LlmException("Interrupted during LLM backoff", e);
     }
   }
 
