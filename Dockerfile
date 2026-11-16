@@ -27,6 +27,6 @@ USER app
 EXPOSE 8081
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=6 \
-    CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081 && printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3 && grep -q "200" <&3'
+    CMD bash -c 'port="${SERVER_PORT:-8081}"; exec 3<>/dev/tcp/127.0.0.1/$port && printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3 && grep -q "200" <&3'
 
 ENTRYPOINT ["java", "-jar", "repoprism-0.1.0.jar"]

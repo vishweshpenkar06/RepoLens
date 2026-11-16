@@ -29,7 +29,8 @@ verified citations, and exposes the same capabilities as an MCP server.
 - Answer-quality and real-provider injection resistance are unmeasured until an LLM key is configured.
 - Rate limiting and caches are per node.
 - Issue ingestion is capped at 300; `get_document` output capped at 20,000 chars.
-- Public demo instance is not live yet (needs host/domain and a provider key).
+- The public demo is a temporary Cloudflare Quick Tunnel against Neon, not a permanent deployment.
+
 - Human checkpoints were delegated to the agent (ADR-0016); review before presenting as human work.
 
 ## Upgrade / run
@@ -40,5 +41,8 @@ export REPOPRISM_API_KEY=$(openssl rand -hex 32)
 curl -s -X POST localhost:8081/api/v1/repos -H "X-API-Key: $REPOPRISM_API_KEY" \
   -H 'Content-Type: application/json' -d '{"url":"https://github.com/encode/httpx"}'
 ```
+
+**Live demo:** https://picture-wallpapers-organizational-valves.trycloudflare.com (demo key and rate
+limits in the README; temporary tunnel).
 
 See `README.md`, `docs/MCP_SETUP.md`, `docs/EVAL.md`, `docs/BENCHMARKS.md`.

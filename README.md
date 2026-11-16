@@ -23,6 +23,18 @@ demos, or any OpenAI-compatible endpoint for real answers.
   hashed API keys, rate limiting, request IDs, metrics, dashboards, load tests, CI, and a non-root
   container image.
 
+### Live demo
+
+**URL:** <https://picture-wallpapers-organizational-valves.trycloudflare.com>
+**Header:** `X-API-Key: 0db27e332ad7594d0e30e4798a050e65b639626e30c22dea`
+Seeded repos: `encode/httpx`, `Kludex/starlette`. Try `GET /api/v1/repos/1/search?q=timeouts&k=5`
+or `POST /api/v1/repos/1/ask`.
+
+The key is public and rate limited (ask 5 burst / 0.05 per s, search 20 / 2, general 30 / 1). Do not
+reuse it. The instance is a **temporary Cloudflare Quick Tunnel** from a workstation: it has no SLA
+and stops when the host sleeps or the tunnel stops. Keep the host awake during a demo. Details:
+[`deploy/CLOUDFLARE_TUNNEL.md`](deploy/CLOUDFLARE_TUNNEL.md).
+
 ### 30-second demo
 
 [![RepoPrism demo: ingest, hybrid search, grounded answer, SSE, MCP](docs/demo.gif)](docs/demo.cast)
@@ -470,8 +482,10 @@ The production target is a small VPS running Docker Compose behind Caddy
 Step-by-step instructions, including the demo-key SQL and seed commands:
 [`deploy/README.md`](deploy/README.md).
 
-**Status:** the image builds and runs healthy locally (non-root, read-only rootfs). A public demo URL
-is not live yet; it needs a host/domain and an LLM provider key from the owner.
+**Status:** live demo is running through a Cloudflare Quick Tunnel against Neon Postgres + pgvector
+(see above and `deploy/CLOUDFLARE_TUNNEL.md`). Hugging Face Docker Spaces now require PRO, so the
+free-tier path uses the tunnel. The image also builds and runs healthy locally (non-root, read-only
+rootfs).
 
 ## Project structure
 
@@ -549,7 +563,8 @@ Javadoc.
   its own timeout; the combined `ask.timeout` is not enforced end to end.
 - **Benchmarks are single runs** on a shared desktop; treat ±10% as noise.
 - **No admin API for keys.** Bootstrap from env or insert hashes via SQL; revocation is SQL.
-- **Public demo pending** a host/domain and provider key; demo video/GIF pending the owner.
+- **Temporary public demo.** The live URL uses a Cloudflare Quick Tunnel from a workstation; it is
+  not a permanent hosted deployment and has no SLA.
 
 ## Roadmap
 

@@ -201,10 +201,33 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
   TokenBucket, eval cases and benchmarks. No solutions, so the owner can rewrite/extend them.
 - README documentation index updated. No runtime code changed; 188 tests remain green.
 
+## Phase E — Name and deploy (demo live; release pending owner)
+
+- Name research: GitHub/Maven/domain checks for eight candidates; owner selected **RepoPrism**.
+  Rename done in one commit (`694950b`): package `com.vishwesh.repoprism`, artifact/image/app name,
+  `REPOPRISM_*` env prefixes, metrics/dashboard, Compose, Dockerfile, docs and README. GitHub URLs
+  remain `RepoLens` until the remote is renamed.
+- Neon free PostgreSQL validated: PostgreSQL 18.7 + pgvector 0.8.7, schema migrated, `encode/httpx`
+  and `Kludex/starlette` ingested READY with issues disabled.
+- Hugging Face Docker Spaces were the intended free host but now return **HTTP 402** (Docker Spaces
+  require PRO), and the app needs ~765 MB RSS, so 512 MB free hosts are not viable.
+- Deployed the free/no-card fallback: app under a `systemd --user` unit + **Cloudflare Quick Tunnel**
+  (`deploy/CLOUDFLARE_TUNNEL.md`). Public URL verified: health 200, 401 without key, repos/search/ask
+  with the demo key, real Groq answer with two citations. Rate limits: ask 5/0.05, search 20/2,
+  general 30/1.
+- Demo re-recorded as RepoPrism (`docs/demo.gif` + `docs/demo.cast`). README has the live URL, demo-key
+  policy, temporary-tunnel warning and deployment status. Release notes prepared.
+- Local tag `v0.1.0` created; pushing the renamed code/tag and renaming the GitHub remote are pending
+  owner approval (remote is still `vishweshpenkar06/RepoLens`).
+- 188 tests green.
+
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns
   semantic candidates; the eval set accounts for this.
-- Real-provider answer quality (including injection resistance) is unverified until a key is provided.
-- Rate limiting is per node (in-process Caffeine bucket registry); Redis is a stretch goal.
-- Benchmarks are single runs on a shared desktop; ±10% is noise.
+- Real-provider quality is measured on free-tier `gpt-oss-20b` with top-k 5 and a 20-case judge
+  sample; it is not a frontier-model benchmark.
+- Rate limiting and caches are per node; Redis is a stretch goal for multi-node.
+- Benchmarks are 3-run medians on a shared desktop; final runs were near-idle but treat ±10% as noise.
+- The public demo is a temporary Cloudflare Quick Tunnel from a workstation, not a permanent host.
+- The GitHub remote is still named `RepoLens`; the local project and image are `RepoPrism`.

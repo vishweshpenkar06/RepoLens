@@ -21,10 +21,10 @@ curl -s -X POST localhost:8081/api/v1/repos \
 
 ## Recording status
 
-HUMAN CHECKPOINT 6 (demo video/GIF + final README results) was delegated to the agent. The script
-and README results are complete and reproducible; a screen recording cannot be produced by the
-agent, so the GIF is **pending the owner**. Record the script with e.g. `asciinema rec` +
-`agg demo.cast demo.gif` and add it here and in the README.
+HUMAN CHECKPOINT 6 (demo video/GIF + final README results) was delegated to the agent. The demo was
+recorded with `asciinema record` and rendered with `agg` into `docs/demo.gif` (source
+`docs/demo.cast`) from the live service. The recording is reproducible with the commands in this
+file; regenerate it after changing the demo script.
 
 ## What to show (90 seconds)
 
