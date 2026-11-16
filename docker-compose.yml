@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-repolens}
     ports:
       # Host port 5432 is taken on this machine; see docs/ENVIRONMENT.md.
-      - "${DB_PORT:-55432}:5432"
+      - "127.0.0.1:${DB_PORT:-55432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -35,7 +35,7 @@ services:
       EMBEDDING_CACHE_DIR: /app/.cache/repolens-onnx
       SERVER_PORT: 8081
     ports:
-      - "${SERVER_PORT:-8081}:8081"
+      - "127.0.0.1:${SERVER_PORT:-8081}:8081"
     volumes:
       - onnxdata:/app/.cache
     depends_on:
@@ -54,7 +54,7 @@ services:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
     volumes:
       - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - promdata:/prometheus
@@ -65,11 +65,11 @@ services:
     image: grafana/grafana:13.3.1
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-local-dev-only-change-me}
       GF_USERS_ALLOW_SIGN_UP: "false"
     ports:
       # Host port 3000 is taken on this machine.
-      - "${GRAFANA_PORT:-3001}:3000"
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
     volumes:
       - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro

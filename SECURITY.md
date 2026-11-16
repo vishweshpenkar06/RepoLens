@@ -27,6 +27,10 @@ with exploit details. You can expect an acknowledgement within 7 days.
 - The default LLM is a deterministic fake; real-provider prompt-injection resistance is measured
   only when a provider key is configured (see `docs/EVAL.md`).
 - Rate limiting and caches are per node; multi-node deployments need a shared limiter/cache.
+- Successful API-key hashes are cached for 60 s by default; revocation can take up to that TTL
+  (`REPOLENS_API_KEY_CACHE_TTL=0s` disables the cache).
+- Dev Compose publishes ports on `127.0.0.1` only and uses a non-`admin/admin` Grafana fallback
+  password. Production Compose exposes only Caddy's 80/443.
 - The demo instance, if deployed, must use a rotated key and tight rate limits.
 - `get_document` returns at most 20,000 characters; ingestion caps documents at 1 MiB.
 

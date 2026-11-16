@@ -10,7 +10,7 @@ API_KEY="${REPOLENS_API_KEY:?set REPOLENS_API_KEY}"
 REPO_ID="${REPO_ID:-1}"
 AUTH=(-H "X-API-Key: $API_KEY")
 
-section() { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
+section() { sleep 1; printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
 
 section "1. Health"
 curl -fsS "$BASE_URL/actuator/health/readiness"; echo
@@ -25,12 +25,12 @@ curl -fsS "${AUTH[@]}" \
 section "4. Grounded answer with citations"
 curl -fsS -X POST "${AUTH[@]}" -H 'Content-Type: application/json' \
   "$BASE_URL/api/v1/repos/$REPO_ID/ask" \
-  -d '{"question":"How do I install this project?","topK":6}' | python3 -m json.tool
+  -d '{"question":"How do I make a basic GET request with HTTPX?","topK":4}' | python3 -m json.tool
 
 section "5. SSE streaming"
 curl -fsSN "${AUTH[@]}" \
-  "$BASE_URL/api/v1/repos/$REPO_ID/ask/stream?question=How%20do%20I%20get%20started%3F&topK=3" \
-  | head -20
+  "$BASE_URL/api/v1/repos/$REPO_ID/ask/stream?question=How%20do%20I%20make%20a%20GET%20request%3F&topK=3" \
+  --max-time 30
 
 section "6. MCP tools"
 cat <<'TXT'

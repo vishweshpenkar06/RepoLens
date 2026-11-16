@@ -168,6 +168,24 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
 - `docs/BENCHMARKS.md` rewritten with machine specs, commands, spreads, before/after and caveats.
 - 188 tests green.
 
+## Phase C — README and repo polish (complete)
+
+- Added a real 30-second terminal demo to the README (`docs/demo.gif`, source `docs/demo.cast`,
+  recorded from `scripts/demo.sh` with Groq and a full SSE stream) and a one-line measured-results
+  summary under the title. No stale "API (planned)" section remained.
+- Limitations updated to distinguish measured (retrieval/answer quality, hot-path benchmarks, demo)
+  from unmeasured/pending (public URL, frontier-model quality, multi-node).
+- Hardening: dev Compose binds app/Postgres/Prometheus/Grafana to `127.0.0.1`; Grafana no longer
+  defaults to `admin/admin` (fallback `local-dev-only-change-me`, `.env.example` leaves it empty);
+  production Compose exposes only Caddy 80/443; API key + rate limits remain on; container remains
+  non-root/read-only. `.env.example` completed with pool sizes, auth-cache TTL, deployment vars.
+- Fresh-clone test passed in an isolated Compose project with no `.env`: readiness 200 after ONNX
+  warmup, 401 without API key, 200 with the local demo key, Grafana rejects `admin/admin` and accepts
+  the new fallback, Prometheus scrapes the app (`up`).
+- `SECURITY.md`/`CONTRIBUTING.md` present; added five issue-ready "good first issue" entries to
+  `docs/BACKLOG.md` (delete repo, repo pagination, `/ask` deadline, key admin API, OpenTelemetry).
+- 188 tests green; ADR-0031 records the binding/password policy.
+
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns

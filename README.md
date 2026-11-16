@@ -5,6 +5,8 @@
 [![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot 4.1.2](https://img.shields.io/badge/Spring%20Boot-4.1.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 
+> **Measured:** hybrid retrieval hit@6 **92.9%** vs 87.5% vector-only (72 cases); real-model answers with **100% citation validity**, **3.6% false refusals**, **100% refusal recall**, **90% grounded**; search **2,281 req/s at p95 4 ms** after the hot-path fixes.
+
 RepoLens is a self-hosted Java service that ingests a GitHub repository's documentation and
 issues, then answers questions about it with **verified citations**, either through a REST API or
 as an **MCP server** that AI assistants (Claude Desktop, IDE agents, custom clients) can plug into.
@@ -20,6 +22,12 @@ demos, or any OpenAI-compatible endpoint for real answers.
 - **Production concerns**: virtual threads, bounded concurrency, incremental ingestion, caching,
   hashed API keys, rate limiting, request IDs, metrics, dashboards, load tests, CI, and a non-root
   container image.
+
+### 30-second demo
+
+[![RepoLens demo: ingest, hybrid search, grounded answer, SSE, MCP](docs/demo.gif)](docs/demo.cast)
+
+*Real Groq answer with citations; the recording is reproducible with [`scripts/demo.sh`](scripts/demo.sh).*
 
 ---
 
@@ -164,7 +172,7 @@ Local services:
 | App | http://localhost:8081 |
 | Postgres + pgvector | `localhost:55432` (`repolens` / `repolens`) |
 | Prometheus | http://localhost:9090 |
-| Grafana | http://localhost:3001 (`admin` / `admin`) |
+| Grafana | http://localhost:3001 (`admin` / `GRAFANA_PASSWORD`; local fallback `local-dev-only-change-me`) |
 
 Host ports are remapped because 5432/8080/3000 may already be in use; see
 [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md).
@@ -434,6 +442,10 @@ run spreads are documented in `docs/BENCHMARKS.md`.
   exempt (protect Prometheus at the network layer).
 - **Rate limiting:** per API key (IP fallback), separate ask/search/general token buckets, 429 with
   `Retry-After` and standard `RateLimit-*` headers.
+- **Auth cache:** successful key hashes are cached for 60 s (`REPOLENS_API_KEY_CACHE_TTL`); revocation
+  can take up to that long (`0s` disables caching).
+- **Local bindings:** dev Compose binds Postgres/Prometheus/Grafana/app to `127.0.0.1` only; Grafana
+  has no default `admin/admin` password.
 - **Prompt injection:** untrusted-data delimiters, explicit rules, no tools in the answer step,
   citation validation, system-sentinel leak refusal. Eval includes injection cases.
 - **Input limits:** 1,000-char questions, `topK` ≤ 12, 1 MiB documents, 300 issues, 20k-char
@@ -515,9 +527,12 @@ Architecture decisions live in [`docs/DECISIONS.md`](docs/DECISIONS.md) (29 ADRs
 of the repository; use environment variables. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 **Human checkpoints:** the six human-owned checkpoints in `MASTERPLAN.md` were delegated to the
-agent on 2026-11-15 (ADR-0016). RRF, the token bucket, the eval cases, benchmark interpretation, and
-the README/demo prose are agent-written; do not present them as human-written without review.
-Provenance is recorded in `PROGRESS.md` and the affected Javadoc.
+agent on 2026-11-15 (ADR-0016). RRF, the token bucket, the eval cases, benchmark interpretation,
+demo recording, and README prose are agent-written. Measured: retrieval/answer quality (72 cases,
+real model), hot-path benchmarks, and a recorded terminal demo. Unmeasured/pending: a public
+deployment URL, frontier-model answer quality, and multi-node behavior. Do not present the
+checkpoints as human-written without review; provenance is in `PROGRESS.md` and the affected
+Javadoc.
 
 ## Limitations
 

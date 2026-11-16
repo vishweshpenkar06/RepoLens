@@ -361,3 +361,13 @@ and hide retrieval cost), bigger machine (not a code fix).
 connections and assumes pgvector ≥0.8 (iterative scan). The main pool keeps normal planner behavior.
 **Finding:** virtual and platform threads were identical before and after (2,281.5 vs 2,272.7 req/s,
 p95 4 vs 4–5 ms) because the endpoint is DB-bound; virtual threads do not make SQL faster.
+
+## ADR-0031: Local-only bindings and no default Grafana admin password
+
+**Decision:** development Compose binds every published port (app, Postgres, Prometheus, Grafana) to
+`127.0.0.1`. Grafana's password fallback is `local-dev-only-change-me`, not `admin`; `.env.example`
+leaves `GRAFANA_PASSWORD` empty. Production Compose publishes only Caddy 80/443 and runs no Grafana.
+**Why:** prevents accidental LAN/public exposure of the database, metrics, admin dashboards and an
+unauthenticated-by-key MCP endpoint while keeping `docker compose up` working from a fresh clone.
+**Tradeoffs:** remote access to dev services requires an SSH tunnel; operators must set
+`GRAFANA_PASSWORD` for shared dev hosts. API keys remain required and rate limits remain enabled.
