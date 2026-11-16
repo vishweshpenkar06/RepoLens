@@ -186,6 +186,21 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
   `docs/BACKLOG.md` (delete repo, repo pagination, `/ask` deadline, key admin API, OpenTelemetry).
 - 188 tests green; ADR-0031 records the binding/password policy.
 
+## Phase D — Study guide (complete)
+
+- `docs/STUDY_GUIDE.md`: zero-to-project explanation of RAG, embeddings, pgvector, chunking, hybrid
+  search, RRF with a worked numeric example, `/ask`, citations/refusal/injection, caches, virtual
+  threads/pinning, token buckets, MCP, security, observability, tests/eval/benchmarks, plus a
+  concept-to-file map.
+- `docs/READING_ORDER.md`: 15 core files in reading order, what to look for in each, and a suggested
+  four-day pace.
+- `docs/INTERVIEW_QA.md`: 30 project-specific questions with honest short answers, including all 10
+  from MASTERPLAN Appendix C and the measured caveats (20b model, agent-drafted cases, virtual
+  threads not helping DB-bound search).
+- `docs/RELEARN_THE_CHECKPOINTS.md`: plain explanations plus five exercises each for RankFusion,
+  TokenBucket, eval cases and benchmarks. No solutions, so the owner can rewrite/extend them.
+- README documentation index updated. No runtime code changed; 188 tests remain green.
+
 **Known issues:**
 - Issue ingestion is capped at 300 by design.
 - Vector search always returns nearest neighbours, so a query with no lexical match still returns

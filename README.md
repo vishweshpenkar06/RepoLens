@@ -574,6 +574,10 @@ Post-v0.1.0, from [`docs/BACKLOG.md`](docs/BACKLOG.md):
 | [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | methodology, hardware, results, interpretation |
 | [`docs/MCP_SETUP.md`](docs/MCP_SETUP.md) | Claude Desktop, generic client, transports |
 | [`docs/DEMO.md`](docs/DEMO.md) | reproducible demo script and recording checklist |
+| [`docs/STUDY_GUIDE.md`](docs/STUDY_GUIDE.md) | beginner guide: RAG, embeddings, pgvector, RRF, virtual threads, MCP |
+| [`docs/READING_ORDER.md`](docs/READING_ORDER.md) | the 15 files to read, in order, with what to look for |
+| [`docs/INTERVIEW_QA.md`](docs/INTERVIEW_QA.md) | 30 interview questions about this project with short answers |
+| [`docs/RELEARN_THE_CHECKPOINTS.md`](docs/RELEARN_THE_CHECKPOINTS.md) | RRF, token bucket, eval, benchmarks: explanations + exercises |
 | [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md) | verified toolchain and port constraints |
 | [`docs/BACKLOG.md`](docs/BACKLOG.md) | ideas outside the plan |
 | [`PROGRESS.md`](PROGRESS.md) | phase-by-phase log and checkpoint provenance |
