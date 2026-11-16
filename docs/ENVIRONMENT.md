@@ -38,7 +38,7 @@ Verified: 2026-11-15
 ## Notes / constraints
 
 - **Port 5432 is already in use** by an unrelated running container (`dinesense-db-1`).
-  RepoLens' `docker-compose.yml` therefore maps Postgres to host port **55432** to avoid a
+  RepoPrism' `docker-compose.yml` therefore maps Postgres to host port **55432** to avoid a
   collision. See `docs/DECISIONS.md` (ADR-0003).
 - Docker group membership is present in `/etc/group` (`docker:x:972:vishwesh`). New shells
   after re-login have access without `sg`.

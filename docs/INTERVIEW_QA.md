@@ -1,4 +1,4 @@
-# Interview questions about RepoLens (30)
+# Interview questions about RepoPrism (30)
 
 Short model answers. Numbers are from committed reports (`docs/EVAL.md`, `docs/BENCHMARKS.md`) and
 include the caveats; do not inflate them.
@@ -110,7 +110,7 @@ should discard streamed tokens.
 ### 17. What do virtual threads buy you here, and what is pinning?
 Virtual threads make blocking waits cheap by unmounting from carrier threads. That helps requests
 waiting on LLM/GitHub I/O. Pinning was when a virtual thread inside `synchronized` could not unmount;
-JEP 491 fixed that in JDK 24, and RepoLens runs JDK 25. For DB-bound `/search`, virtual threads did
+JEP 491 fixed that in JDK 24, and RepoPrism runs JDK 25. For DB-bound `/search`, virtual threads did
 not help: 2,281.5 vs 2,272.7 req/s for platform threads after the fixes.
 
 ### 18. Why bound embedding concurrency if virtual threads are cheap?
@@ -148,7 +148,7 @@ documents. The query log and content version make stale-cache issues diagnosable
 ### 23. How are API keys stored and checked?
 Only SHA-256 hashes are stored in `api_key`. Lookup is by hash, then `MessageDigest.isEqual` compares
 the hash constant-time. Keys can be revoked; successful auth is cached for 60 s for performance, so
-revocation can take up to that TTL (`REPOLENS_API_KEY_CACHE_TTL=0s` disables caching). `/api/*` and
+revocation can take up to that TTL (`REPOPRISM_API_KEY_CACHE_TTL=0s` disables caching). `/api/*` and
 `/mcp` require a key; actuator health/metrics are exempt.
 
 ### 24. How do you prevent SSRF?

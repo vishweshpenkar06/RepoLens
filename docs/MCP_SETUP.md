@@ -1,6 +1,6 @@
 # MCP Setup
 
-RepoLens exposes four MCP tools over **streamable HTTP** (`/mcp`) and **stdio**:
+RepoPrism exposes four MCP tools over **streamable HTTP** (`/mcp`) and **stdio**:
 
 | Tool | Inputs | Returns |
 |---|---|---|
@@ -16,7 +16,7 @@ assistant can treat it as data, never instructions.
 
 - Postgres + pgvector running (`docker compose up -d`).
 - At least one repository ingested (`POST /api/v1/repos`).
-- An API key for HTTP transports: set `REPOLENS_API_KEY` in `.env` (the hash is stored on startup).
+- An API key for HTTP transports: set `REPOPRISM_API_KEY` in `.env` (the hash is stored on startup).
   Stdio mode is a local process and does not use the HTTP key filter.
 
 ## Claude Desktop (stdio, recommended for local)
@@ -29,18 +29,18 @@ Claude Desktop launches the server as a child process. Logs must not go to stdou
 ```json
 {
   "mcpServers": {
-    "repolens": {
+    "repoprism": {
       "command": "/ABSOLUTE/PATH/TO/java",
       "args": [
-        "-jar", "/ABSOLUTE/PATH/TO/repolens-0.1.0.jar",
+        "-jar", "/ABSOLUTE/PATH/TO/repoprism-0.1.0.jar",
         "--spring.main.web-application-type=none",
         "--spring.ai.mcp.server.stdio=true",
         "--logging.config=classpath:logback-stdio.xml"
       ],
       "env": {
-        "DB_URL": "jdbc:postgresql://localhost:55432/repolens",
-        "DB_USERNAME": "repolens",
-        "DB_PASSWORD": "repolens",
+        "DB_URL": "jdbc:postgresql://localhost:55432/repoprism",
+        "DB_USERNAME": "repoprism",
+        "DB_PASSWORD": "repoprism",
         "LLM_PROVIDER": "fake"
       }
     }
@@ -52,12 +52,12 @@ Notes:
 
 - Use absolute paths; Claude Desktop does not expand `~`.
 - Set `LLM_PROVIDER`/`LLM_*` in `env` for real answers (any OpenAI-compatible endpoint).
-- The first start loads the ONNX embedding model (cached under `${EMBEDDING_CACHE_DIR:-$TMPDIR/repolens-onnx}`).
+- The first start loads the ONNX embedding model (cached under `${EMBEDDING_CACHE_DIR:-$TMPDIR/repoprism-onnx}`).
 - Restart Claude Desktop after editing the file.
 
 ## Generic MCP client (streamable HTTP)
 
-Endpoint: `POST/GET http://localhost:8081/mcp` with header `X-API-Key: <REPOLENS_API_KEY>`.
+Endpoint: `POST/GET http://localhost:8081/mcp` with header `X-API-Key: <REPOPRISM_API_KEY>`.
 The transport is stateful streamable HTTP (protocol `2025-06-18` is negotiated).
 
 Minimal raw JSON-RPC sequence (session handling is normally done by the client library):
@@ -66,7 +66,7 @@ Minimal raw JSON-RPC sequence (session handling is normally done by the client l
 curl -s -X POST localhost:8081/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
-  -H "X-API-Key: $REPOLENS_API_KEY" \
+  -H "X-API-Key: $REPOPRISM_API_KEY" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'
 ```
 
@@ -87,7 +87,7 @@ var result = client.callTool(new CallToolRequest(
 client.close();
 ```
 
-The HTTP transport is unauthenticated by itself; RepoLens' `ApiKeyFilter` protects `/mcp` and the
+The HTTP transport is unauthenticated by itself; RepoPrism' `ApiKeyFilter` protects `/mcp` and the
 REST API. `/actuator/health` and `/actuator/prometheus` are exempt (protect Prometheus at the
 network layer).
 
@@ -95,9 +95,9 @@ network layer).
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `REPOLENS_API_KEY` | empty | bootstrap HTTP API key (hash stored in `api_key`) |
-| `REPOLENS_API_KEY_REQUIRED` | `true` | require `X-API-Key` on `/api/*` and `/mcp` |
+| `REPOPRISM_API_KEY` | empty | bootstrap HTTP API key (hash stored in `api_key`) |
+| `REPOPRISM_API_KEY_REQUIRED` | `true` | require `X-API-Key` on `/api/*` and `/mcp` |
 | `MCP_STDIO` | `false` | enable stdio transport (`spring.ai.mcp.server.stdio`) |
 | `MCP_PROTOCOL` | `streamable` | HTTP protocol: `streamable`, `sse`, `stateless` |
 
-Disabling keys (`REPOLENS_API_KEY_REQUIRED=false`) is only appropriate for local experiments.
+Disabling keys (`REPOPRISM_API_KEY_REQUIRED=false`) is only appropriate for local experiments.

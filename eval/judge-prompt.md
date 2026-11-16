@@ -1,4 +1,4 @@
-# RepoLens groundedness judge
+# RepoPrism groundedness judge
 
 You are a strict evaluation judge for a retrieval-augmented QA system.
 

@@ -23,7 +23,7 @@ documents/chunks/jobs are removed, README/API docs updated.
 `total`, existing tests updated, no N+1 regression.
 
 ### 3. Make `/ask` enforce the configured end-to-end deadline
-**Context:** `repolens.ask.timeout` exists but retrieval stages (15 s) and the LLM client enforce
+**Context:** `repoprism.ask.timeout` exists but retrieval stages (15 s) and the LLM client enforce
 their own separate timeouts.
 **Acceptance:** a deadline covers retrieval + LLM + verification; timeout returns 504 ProblemDetail;
 a test uses a slow fake LLM to prove the bound.

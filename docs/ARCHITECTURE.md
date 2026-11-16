@@ -11,7 +11,7 @@ evaluation harness, k6 load tests, and a production container/deploy stack.
 
 ## Context
 
-RepoLens ingests a GitHub repository's documentation and issues, then answers questions with
+RepoPrism ingests a GitHub repository's documentation and issues, then answers questions with
 citations over REST and MCP. Retrieval is hybrid (pgvector + Postgres full-text search, fused with
 Reciprocal Rank Fusion). Answers must be grounded, cited, and refuse when evidence is missing.
 
@@ -92,7 +92,7 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
 
 ## MCP and edge security (implemented)
 
-- `RepoLensMcpTools`: `list_repositories`, `search_docs`, `ask_repo`, `get_document` annotated with
+- `RepoPrismMcpTools`: `list_repositories`, `search_docs`, `ask_repo`, `get_document` annotated with
   `@McpTool`; descriptions target an LLM reader; retrieved text is wrapped in untrusted delimiters.
 - HTTP transport: streamable HTTP at `/mcp` (Spring AI MCP server starter); stdio transport is an
   alternate launch mode (web application type `none`, logs to stderr).
@@ -107,7 +107,7 @@ Client --> REST API (MVC, /api/v1/*)        MCP Server (streamable HTTP + stdio)
 - Micrometer timers/counters: ask latency (cached/refused tags), retrieval latency per stage,
   LLM latency/errors, cache hits/misses, rate-limit rejections, ingest docs/chunks/duration.
   Prometheus endpoint: `/actuator/prometheus`; histograms enabled for p50/p95/p99.
-- Grafana dashboard `deploy/grafana/dashboards/repolens.json` plotted against the provisioned
+- Grafana dashboard `deploy/grafana/dashboards/repoprism.json` plotted against the provisioned
   Prometheus datasource.
 - `eval/` harness: 52 cases, real retrieval metrics (hit@3/6, MRR), structural answer checks,
   chunk-size variants; reports in `eval/reports/`. Results in `docs/EVAL.md`.

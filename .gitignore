@@ -32,7 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 
-### RepoLens ###
+### RepoPrism ###
 .env
 *.log
 load/results/

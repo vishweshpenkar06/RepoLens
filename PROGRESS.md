@@ -112,12 +112,12 @@ agent-written under the owner's delegation (ADR-0016). Review before quoting as 
   JSON logs in both host and container runs (actuator requests excluded to avoid probe spam).
 - `/actuator/info` exposes build artifact/version via the Spring Boot build-info goal.
 - Fixed streaming LLM latency being recorded under the retrieval metric; it now uses
-  `repolens_llm_latency`.
+  `repoprism_llm_latency`.
 - API key hash comparison uses `MessageDigest.isEqual` (constant-time) after the indexed lookup.
 - Added `docs/API.md` (payloads, errors, rate-limit headers, SSE events); README badges, default
   demo-key warning, documentation index updated.
 - Runtime-verified: Prometheus scrapes both compose and host targets (`up`), Grafana has the
-  10-panel RepoLens Overview dashboard, container logs include request IDs.
+  10-panel RepoPrism Overview dashboard, container logs include request IDs.
 - New tests: build-info, Prometheus endpoint, rate-limit rejection counter, MCP document truncation.
 - Configured and smoke-tested a real Groq provider (`openai/gpt-oss-120b`) via `.env` (never
   committed): grounded install answer with citations (~1.9 s) and a correct refusal.

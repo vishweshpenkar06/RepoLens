@@ -3,7 +3,7 @@
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8081}"
-API_KEY="${REPOLENS_API_KEY:?set REPOLENS_API_KEY}"
+API_KEY="${REPOPRISM_API_KEY:?set REPOPRISM_API_KEY}"
 REPOS=("${@:-encode/httpx Kludex/starlette octocat/Hello-World}")
 
 for repo in ${REPOS[*]}; do

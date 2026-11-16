@@ -2,7 +2,7 @@ import http from "k6/http";
 import { check, sleep } from "k6";
 
 // /ask against the deterministic fake LLM (~300 ms simulated latency), so the LLM provider is not
-// measured. Run the app with --repolens.llm.fake-latency=300ms.
+// measured. Run the app with --repoprism.llm.fake-latency=300ms.
 // Usage:
 //   k6 run -e BASE_URL=http://localhost:8081 -e API_KEY=... -e REPO_ID=1 load/ask_stubbed.js
 //   MODE=unique (default) avoids the answer cache; MODE=fixed measures the cache hit path.

@@ -11,7 +11,7 @@ CHECKPOINT 5 to the agent (ADR-0016). The interpretation below is agent-written.
 | RAM | 15 GiB |
 | OS | Nobara Linux 44 (Fedora 44 base), kernel 7.2 |
 | JDK | OpenJDK 25.0.4.1 (Temurin-compatible Red Hat build) |
-| App | `repolens-0.1.0.jar`, Spring Boot 4.1.2 |
+| App | `repoprism-0.1.0.jar`, Spring Boot 4.1.2 |
 | Database | PostgreSQL 17 + pgvector 0.8.7 in Docker, host port 55432 |
 | Dataset | `encode/httpx`: 967 chunks, 384-dim all-MiniLM-L6-v2 vectors |
 | HTTP load | k6 v2.4.0, same host |
@@ -27,8 +27,8 @@ unrelated `dinesense` stack and with the host near idle (~95% idle at start). Tr
 Search load (200 VUs, 25 s ramp):
 
 ```bash
-REPOLENS_API_KEY=loadtest-key RATE_LIMIT_ENABLED=false LLM_PROVIDER=fake \
-  java -jar target/repolens-0.1.0.jar   # add --spring.threads.virtual.enabled=false for platform threads
+REPOPRISM_API_KEY=loadtest-key RATE_LIMIT_ENABLED=false LLM_PROVIDER=fake \
+  java -jar target/repoprism-0.1.0.jar   # add --spring.threads.virtual.enabled=false for platform threads
 
 k6 run -e BASE_URL=http://localhost:8081 -e API_KEY=loadtest-key -e REPO_ID=4 \
   --stage 5s:100 --stage 15s:200 --stage 5s:0 load/search.js
@@ -54,7 +54,7 @@ Initial profile at 200 VUs:
 
 Fixes applied:
 
-1. **Cache API-key authentication** for 60 s (configurable, `REPOLENS_API_KEY_CACHE_TTL`; `0s`
+1. **Cache API-key authentication** for 60 s (configurable, `REPOPRISM_API_KEY_CACHE_TTL`; `0s`
    disables). Removes one DB query per request. Revocation therefore takes up to the TTL.
 2. **Cache positive repository existence** for 10 min in `SearchService` (repositories cannot be
    deleted through the API). Removes another DB query.

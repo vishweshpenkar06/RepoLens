@@ -123,7 +123,7 @@ deleted (chunks cascade).
 
 **Decision:** `spring-ai-starter-model-transformers` with `all-MiniLM-L6-v2` (384 dims), model and
 tokenizer downloaded from Hugging Face on first use and cached under
-`${EMBEDDING_CACHE_DIR:-$TMPDIR/repolens-onnx}`. `OnnxEmbedder` warms up at startup (configurable)
+`${EMBEDDING_CACHE_DIR:-$TMPDIR/repoprism-onnx}`. `OnnxEmbedder` warms up at startup (configurable)
 and reports `UP` only after a successful embedding.
 **Why:** no paid key, offline after the first download, readiness reflects real model health.
 **Tradeoff:** first startup downloads ~90 MB; tests disable the model
@@ -231,7 +231,7 @@ do not support (use stdio there).
 
 **Decision:** `X-API-Key` is required for `/api/*` and `/mcp` by default. Only the SHA-256 hash is
 stored in `api_key`; validation looks up the unique hash and rejects revoked rows. A configured
-`REPOLENS_API_KEY` is bootstrapped at startup (hash only). Missing or invalid keys return an RFC
+`REPOPRISM_API_KEY` is bootstrapped at startup (hash only). Missing or invalid keys return an RFC
 7807 401. Actuator endpoints are exempt.
 **Why:** no plaintext secrets at rest, simple revocation (`revoked=true`), and secure-by-default
 deployment. Hash lookup cannot leak the secret; SHA-256 preimage resistance makes timing attacks on
@@ -267,8 +267,8 @@ optimization can drop the column and reconstruct from chunks if storage matters.
 
 ## ADR-0024: Micrometer naming and Prometheus histograms
 
-**Decision:** metric names use Micrometer dot notation (`repolens.ask.latency`, `repolens.retrieval.latency`,
-`repolens.cache.hits`, `repolens.ratelimit.rejected`, `repolens.ingest.*`); Prometheus exposes them
+**Decision:** metric names use Micrometer dot notation (`repoprism.ask.latency`, `repoprism.retrieval.latency`,
+`repoprism.cache.hits`, `repoprism.ratelimit.rejected`, `repoprism.ingest.*`); Prometheus exposes them
 with `_seconds`/`_total` suffixes. Histograms are enabled for ask, retrieval, LLM and ingest timers via
 `management.metrics.distribution.percentiles-histogram`.
 **Why:** histogram buckets are required for `histogram_quantile` in Grafana; summaries only export
@@ -344,7 +344,7 @@ marked for human review.
 
 ## ADR-0030: Search hot-path fixes (auth cache, vector pool, iterative HNSW)
 
-**Decision:** (1) cache authenticated API-key hashes for 60 s (`REPOLENS_API_KEY_CACHE_TTL`, `0s`
+**Decision:** (1) cache authenticated API-key hashes for 60 s (`REPOPRISM_API_KEY_CACHE_TTL`, `0s`
 disables); (2) cache positive repository existence for 10 min in `SearchService`; (3) make the Hikari
 pool configurable (`DB_POOL_SIZE`, default 20); (4) give vector search a dedicated Hikari pool
 (`VECTOR_POOL_SIZE`, default 10) with `hnsw.iterative_scan=relaxed_order`, `enable_seqscan=off`,

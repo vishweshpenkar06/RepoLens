@@ -7,7 +7,7 @@ COPY mvnw pom.xml ./
 RUN ./mvnw -B -ntp -q dependency:go-offline
 COPY src/ src/
 RUN ./mvnw -B -ntp -q -DskipTests package \
-    && java -Djarmode=tools -jar target/repolens-0.1.0.jar extract --destination extracted
+    && java -Djarmode=tools -jar target/repoprism-0.1.0.jar extract --destination extracted
 
 FROM eclipse-temurin:25-jre-jammy
 
@@ -18,10 +18,10 @@ RUN groupadd --system --gid 1001 app \
 
 WORKDIR /app
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError" \
-    EMBEDDING_CACHE_DIR=/app/.cache/repolens-onnx
+    EMBEDDING_CACHE_DIR=/app/.cache/repoprism-onnx
 
 COPY --from=build --chown=app:app /workspace/extracted/lib/ ./lib/
-COPY --from=build --chown=app:app /workspace/extracted/repolens-0.1.0.jar ./
+COPY --from=build --chown=app:app /workspace/extracted/repoprism-0.1.0.jar ./
 
 USER app
 EXPOSE 8081
@@ -29,4 +29,4 @@ EXPOSE 8081
 HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=6 \
     CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/8081 && printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3 && grep -q "200" <&3'
 
-ENTRYPOINT ["java", "-jar", "repolens-0.1.0.jar"]
+ENTRYPOINT ["java", "-jar", "repoprism-0.1.0.jar"]

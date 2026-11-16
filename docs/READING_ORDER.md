@@ -21,11 +21,11 @@ Look for `${ENV:default}` placeholders, virtual threads, Hikari, MCP, LLM, secur
 Tables: repository, document, chunk, ingestion_job, query_log, api_key. Note `vector(384)`, the
 generated `fts` tsvector, GIN and HNSW indexes. Read V2 only to see why `document.content` exists.
 
-### 5. `src/main/java/com/vishwesh/repolens/RepolensApplication.java`
+### 5. `src/main/java/com/vishwesh/repoprism/RepoPrismApplication.java`
 **Question:** how does Spring find everything?
 `@SpringBootApplication` + `@ConfigurationPropertiesScan`. This is the entry point.
 
-### 6. `config/RepoLensProperties.java`
+### 6. `config/RepoPrismProperties.java`
 **Question:** where is configuration typed?
 Nested records for GitHub, embedding, retrieval, ask, LLM and caches. Defaults are part of the
 contract; tests instantiate defaults.
@@ -81,8 +81,8 @@ refuse on zero valid citations or system leak -> cache/log. This is the core ans
 
 - `ratelimit/TokenBucket.java` and `RateLimitFilter.java` — concurrency and 429 behaviour.
 - `security/ApiKeyService.java`, `ApiKeyFilter.java`, `RequestIdFilter.java` — edge security.
-- `mcp/RepoLensMcpTools.java` — how the same features are exposed to AI assistants.
-- `observability/RepoLensMetrics.java` and `deploy/grafana/dashboards/repolens.json` — what is measured.
+- `mcp/RepoPrismMcpTools.java` — how the same features are exposed to AI assistants.
+- `observability/RepoPrismMetrics.java` and `deploy/grafana/dashboards/repoprism.json` — what is measured.
 - `src/test/java/.../eval/EvalRunnerTests.java` + `eval/judge-prompt.md` — how quality is measured.
 - `load/*.js` and `docs/BENCHMARKS.md` — how performance claims were produced.
 

@@ -4,18 +4,18 @@ The reproducible terminal demo is `scripts/demo.sh`. It exercises health, reposi
 hybrid search, a grounded answer with citations, SSE streaming, and prints the MCP entry points.
 
 ```bash
-cp .env.example .env                 # set REPOLENS_API_KEY
+cp .env.example .env                 # set REPOPRISM_API_KEY
 docker compose up -d
-REPOLENS_API_KEY=<key> ./mvnw spring-boot:run
+REPOPRISM_API_KEY=<key> ./mvnw spring-boot:run
 # in another terminal
-BASE_URL=http://localhost:8081 REPOLENS_API_KEY=<key> REPO_ID=1 ./scripts/demo.sh
+BASE_URL=http://localhost:8081 REPOPRISM_API_KEY=<key> REPO_ID=1 ./scripts/demo.sh
 ```
 
 First ingest a repository if the list is empty:
 
 ```bash
 curl -s -X POST localhost:8081/api/v1/repos \
-  -H "X-API-Key: $REPOLENS_API_KEY" -H 'Content-Type: application/json' \
+  -H "X-API-Key: $REPOPRISM_API_KEY" -H 'Content-Type: application/json' \
   -d '{"url":"https://github.com/encode/httpx"}'
 ```
 

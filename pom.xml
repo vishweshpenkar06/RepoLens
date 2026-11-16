@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.vishwesh</groupId>
-	<artifactId>repolens</artifactId>
+	<artifactId>repoprism</artifactId>
 	<version>0.1.0</version>
-	<name>repolens</name>
+	<name>repoprism</name>
 	<description>Self-hosted RAG service and MCP server for GitHub documentation</description>
 	<url>https://github.com/vishweshpenkar06/RepoLens</url>
 	<licenses>
@@ -218,7 +218,7 @@
 						</goals>
 						<configuration>
 							<excludes>
-								<exclude>com/vishwesh/repolens/RepolensApplication.class</exclude>
+								<exclude>com/vishwesh/repoprism/RepoPrismApplication.class</exclude>
 							</excludes>
 							<rules>
 								<rule>

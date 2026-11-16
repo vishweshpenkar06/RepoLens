@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Two-minute terminal demo. Start the stack first:
 #   docker compose up -d
-#   REPOLENS_API_KEY=<key> ./mvnw spring-boot:run   (or use the container on :8081)
-# Then: BASE_URL=http://localhost:8081 REPOLENS_API_KEY=<key> ./scripts/demo.sh
+#   REPOPRISM_API_KEY=<key> ./mvnw spring-boot:run   (or use the container on :8081)
+# Then: BASE_URL=http://localhost:8081 REPOPRISM_API_KEY=<key> ./scripts/demo.sh
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8081}"
-API_KEY="${REPOLENS_API_KEY:?set REPOLENS_API_KEY}"
+API_KEY="${REPOPRISM_API_KEY:?set REPOPRISM_API_KEY}"
 REPO_ID="${REPO_ID:-1}"
 AUTH=(-H "X-API-Key: $API_KEY")
 
@@ -36,7 +36,7 @@ section "6. MCP tools"
 cat <<'TXT'
 Tools: list_repositories, search_docs, ask_repo, get_document
 HTTP:  /mcp  (streamable HTTP, requires X-API-Key)
-stdio: java -jar repolens-0.1.0.jar --spring.main.web-application-type=none \
+stdio: java -jar repoprism-0.1.0.jar --spring.main.web-application-type=none \
          --spring.ai.mcp.server.stdio=true --logging.config=classpath:logback-stdio.xml
        See docs/MCP_SETUP.md for the Claude Desktop config.
 TXT

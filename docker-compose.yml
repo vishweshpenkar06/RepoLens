@@ -1,38 +1,38 @@
-name: repolens
+name: repoprism
 
 services:
   postgres:
     image: pgvector/pgvector:0.8.7-pg17
     environment:
-      POSTGRES_DB: ${DB_NAME:-repolens}
-      POSTGRES_USER: ${DB_USERNAME:-repolens}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-repolens}
+      POSTGRES_DB: ${DB_NAME:-repoprism}
+      POSTGRES_USER: ${DB_USERNAME:-repoprism}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-repoprism}
     ports:
       # Host port 5432 is taken on this machine; see docs/ENVIRONMENT.md.
       - "127.0.0.1:${DB_PORT:-55432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-repolens} -d ${DB_NAME:-repolens}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-repoprism} -d ${DB_NAME:-repoprism}"]
       interval: 5s
       timeout: 3s
       retries: 20
 
   app:
     build: .
-    image: repolens:local
+    image: repoprism:local
     environment:
-      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-repolens}
-      DB_USERNAME: ${DB_USERNAME:-repolens}
-      DB_PASSWORD: ${DB_PASSWORD:-repolens}
-      REPOLENS_API_KEY: ${REPOLENS_API_KEY:-demo-key-change-me}
-      REPOLENS_API_KEY_REQUIRED: ${REPOLENS_API_KEY_REQUIRED:-true}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-repoprism}
+      DB_USERNAME: ${DB_USERNAME:-repoprism}
+      DB_PASSWORD: ${DB_PASSWORD:-repoprism}
+      REPOPRISM_API_KEY: ${REPOPRISM_API_KEY:-demo-key-change-me}
+      REPOPRISM_API_KEY_REQUIRED: ${REPOPRISM_API_KEY_REQUIRED:-true}
       RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
       LLM_PROVIDER: ${LLM_PROVIDER:-fake}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-}
-      EMBEDDING_CACHE_DIR: /app/.cache/repolens-onnx
+      EMBEDDING_CACHE_DIR: /app/.cache/repoprism-onnx
       SERVER_PORT: 8081
     ports:
       - "127.0.0.1:${SERVER_PORT:-8081}:8081"

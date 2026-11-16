@@ -1,4 +1,4 @@
-# RepoLens v0.1.0
+# RepoPrism v0.1.0
 
 Self-hosted Java service that ingests GitHub documentation and issues, answers questions with
 verified citations, and exposes the same capabilities as an MCP server.
@@ -36,8 +36,8 @@ verified citations, and exposes the same capabilities as an MCP server.
 
 ```bash
 docker compose up -d
-export REPOLENS_API_KEY=$(openssl rand -hex 32)
-curl -s -X POST localhost:8081/api/v1/repos -H "X-API-Key: $REPOLENS_API_KEY" \
+export REPOPRISM_API_KEY=$(openssl rand -hex 32)
+curl -s -X POST localhost:8081/api/v1/repos -H "X-API-Key: $REPOPRISM_API_KEY" \
   -H 'Content-Type: application/json' -d '{"url":"https://github.com/encode/httpx"}'
 ```
 

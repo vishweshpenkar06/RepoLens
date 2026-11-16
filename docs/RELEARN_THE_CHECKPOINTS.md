@@ -9,8 +9,8 @@ compare with the code. No solutions are given on purpose.
 
 ## 1. RankFusion (RRF)
 
-**File:** `src/main/java/com/vishwesh/repolens/retrieve/RankFusion.java`
-**Tests:** `src/test/java/com/vishwesh/repolens/retrieve/RankFusionContractTests.java`
+**File:** `src/main/java/com/vishwesh/repoprism/retrieve/RankFusion.java`
+**Tests:** `src/test/java/com/vishwesh/repoprism/retrieve/RankFusionContractTests.java`
 **Concept:** two ranked lists go in (vector results, keyword results); one fused list comes out.
 Only **ranks** are used: `score(d) = Σ 1/(k + rank_i(d))`, `k = 60`, ranks 1-based.
 
@@ -42,8 +42,8 @@ Result: B, C, A, D.
 
 ## 2. TokenBucket
 
-**File:** `src/main/java/com/vishwesh/repolens/ratelimit/TokenBucket.java`
-**Tests:** `src/test/java/com/vishwesh/repolens/ratelimit/TokenBucketTests.java`
+**File:** `src/main/java/com/vishwesh/repoprism/ratelimit/TokenBucket.java`
+**Tests:** `src/test/java/com/vishwesh/repoprism/ratelimit/TokenBucketTests.java`
 **Concept:** a bucket of `capacity` tokens refills at `refillPerSecond`; each request takes one token;
 no token means 429. Time is injected as `LongSupplier` nanoseconds so tests do not sleep.
 
@@ -68,7 +68,7 @@ exists, so exactly one request passes.
 
 ## 3. Evaluation cases
 
-**Files:** `eval/cases.jsonl`, `src/test/java/com/vishwesh/repolens/eval/EvalRunnerTests.java`,
+**Files:** `eval/cases.jsonl`, `src/test/java/com/vishwesh/repoprism/eval/EvalRunnerTests.java`,
 `eval/judge-prompt.md`
 **Concept:** cases are JSONL entries `{repo, question, expected_sources[], type}`. Retrieval is scored
 by whether an expected source appears in top-k, plus MRR. Answer cases check citations, refusal and

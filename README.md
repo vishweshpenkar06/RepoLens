@@ -1,4 +1,4 @@
-# RepoLens
+# RepoPrism
 
 [![CI](https://github.com/vishweshpenkar06/RepoLens/actions/workflows/ci.yml/badge.svg)](https://github.com/vishweshpenkar06/RepoLens/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -7,7 +7,7 @@
 
 > **Measured:** hybrid retrieval hit@6 **92.9%** vs 87.5% vector-only (72 cases); real-model answers with **100% citation validity**, **3.6% false refusals**, **100% refusal recall**, **90% grounded**; search **2,281 req/s at p95 4 ms** after the hot-path fixes.
 
-RepoLens is a self-hosted Java service that ingests a GitHub repository's documentation and
+RepoPrism is a self-hosted Java service that ingests a GitHub repository's documentation and
 issues, then answers questions about it with **verified citations**, either through a REST API or
 as an **MCP server** that AI assistants (Claude Desktop, IDE agents, custom clients) can plug into.
 
@@ -25,7 +25,7 @@ demos, or any OpenAI-compatible endpoint for real answers.
 
 ### 30-second demo
 
-[![RepoLens demo: ingest, hybrid search, grounded answer, SSE, MCP](docs/demo.gif)](docs/demo.cast)
+[![RepoPrism demo: ingest, hybrid search, grounded answer, SSE, MCP](docs/demo.gif)](docs/demo.cast)
 
 *Real Groq answer with citations; the recording is reproducible with [`scripts/demo.sh`](scripts/demo.sh).*
 
@@ -154,23 +154,23 @@ Maven is needed.
 
 ```bash
 git clone https://github.com/vishweshpenkar06/RepoLens.git
-cd RepoLens
+cd RepoPrism
 cp .env.example .env
-# set REPOLENS_API_KEY to a random value: openssl rand -hex 32
+# set REPOPRISM_API_KEY to a random value: openssl rand -hex 32
 docker compose up -d
 curl localhost:8081/actuator/health/readiness
 ```
 
 The first start downloads the ~90 MB ONNX model into the `onnxdata` volume; readiness stays down
 until the model loads. For local experiments only, Compose falls back to
-`demo-key-change-me` when `REPOLENS_API_KEY` is empty. Set a real key before exposing anything.
+`demo-key-change-me` when `REPOPRISM_API_KEY` is empty. Set a real key before exposing anything.
 
 Local services:
 
 | Service | URL |
 |---|---|
 | App | http://localhost:8081 |
-| Postgres + pgvector | `localhost:55432` (`repolens` / `repolens`) |
+| Postgres + pgvector | `localhost:55432` (`repoprism` / `repoprism`) |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3001 (`admin` / `GRAFANA_PASSWORD`; local fallback `local-dev-only-change-me`) |
 
@@ -181,7 +181,7 @@ Host ports are remapped because 5432/8080/3000 may already be in use; see
 
 ```bash
 docker compose up -d postgres
-export REPOLENS_API_KEY=$(openssl rand -hex 32)
+export REPOPRISM_API_KEY=$(openssl rand -hex 32)
 ./mvnw verify
 ./mvnw spring-boot:run
 ```
@@ -189,28 +189,28 @@ export REPOLENS_API_KEY=$(openssl rand -hex 32)
 ### First ingestion, search, and answer
 
 ```bash
-export REPOLENS_API_KEY=...   # the same value the app bootstrapped
+export REPOPRISM_API_KEY=...   # the same value the app bootstrapped
 
 # Register a repository (async); returns 202 with repoId and jobId
 curl -s -X POST localhost:8081/api/v1/repos \
-  -H "X-API-Key: $REPOLENS_API_KEY" -H 'Content-Type: application/json' \
+  -H "X-API-Key: $REPOPRISM_API_KEY" -H 'Content-Type: application/json' \
   -d '{"url":"https://github.com/encode/httpx"}'
 
 # Poll until status is READY
-curl -s localhost:8081/api/v1/repos/1 -H "X-API-Key: $REPOLENS_API_KEY"
+curl -s localhost:8081/api/v1/repos/1 -H "X-API-Key: $REPOPRISM_API_KEY"
 
 # Hybrid search
 curl -s "localhost:8081/api/v1/repos/1/search?q=timeouts&k=6" \
-  -H "X-API-Key: $REPOLENS_API_KEY"
+  -H "X-API-Key: $REPOPRISM_API_KEY"
 
 # Grounded answer with citations (fake LLM by default)
 curl -s -X POST localhost:8081/api/v1/repos/1/ask \
-  -H "X-API-Key: $REPOLENS_API_KEY" -H 'Content-Type: application/json' \
+  -H "X-API-Key: $REPOPRISM_API_KEY" -H 'Content-Type: application/json' \
   -d '{"question":"How do I configure timeouts?","topK":6}'
 
 # SSE streaming
 curl -N "localhost:8081/api/v1/repos/1/ask/stream?question=How%20do%20I%20configure%20timeouts%3F&topK=6" \
-  -H "X-API-Key: $REPOLENS_API_KEY"
+  -H "X-API-Key: $REPOPRISM_API_KEY"
 ```
 
 A reproducible terminal demo is in [`scripts/demo.sh`](scripts/demo.sh) and
@@ -226,12 +226,12 @@ Every value has a default and can be overridden by environment variables. Start 
 | Variable | Default | Purpose |
 |---|---|---|
 | `SERVER_PORT` | `8081` | HTTP port |
-| `DB_URL` | `jdbc:postgresql://localhost:55432/repolens` | JDBC URL (Compose uses `postgres:5432`) |
-| `DB_USERNAME` / `DB_PASSWORD` | `repolens` | database credentials |
+| `DB_URL` | `jdbc:postgresql://localhost:55432/repoprism` | JDBC URL (Compose uses `postgres:5432`) |
+| `DB_USERNAME` / `DB_PASSWORD` | `repoprism` | database credentials |
 | `GITHUB_TOKEN` | empty | raises GitHub API limits during ingestion; never logged |
 | `GITHUB_ISSUES_ENABLED` | `true` | ingest issues (up to 300) |
 | `EMBEDDING_PROVIDER` | `transformers` | Spring AI embedding selector (`none` for tests) |
-| `EMBEDDING_CACHE_DIR` | `${java.io.tmpdir}/repolens-onnx` | ONNX model cache |
+| `EMBEDDING_CACHE_DIR` | `${java.io.tmpdir}/repoprism-onnx` | ONNX model cache |
 | `EMBEDDING_MODEL_URI` / `EMBEDDING_TOKENIZER_URI` | Hugging Face MiniLM URLs | alternative model artifacts (384 dims required) |
 
 ### LLM
@@ -260,17 +260,17 @@ Keys live in `.env` (gitignored) or the environment only.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `REPOLENS_API_KEY` | empty | bootstrap key; only its SHA-256 hash is stored |
-| `REPOLENS_API_KEY_REQUIRED` | `true` | require `X-API-Key` on `/api/*` and `/mcp` |
+| `REPOPRISM_API_KEY` | empty | bootstrap key; only its SHA-256 hash is stored |
+| `REPOPRISM_API_KEY_REQUIRED` | `true` | require `X-API-Key` on `/api/*` and `/mcp` |
 | `RATE_LIMIT_ENABLED` | `true` | token-bucket limiting |
 | `RATE_LIMIT_ASK_CAPACITY` / `..._ASK_REFILL` | `10` / `0.5` | `/ask` burst / tokens per second |
 | `RATE_LIMIT_SEARCH_CAPACITY` / `..._SEARCH_REFILL` | `30` / `5` | `/search` burst / refill |
 | `RATE_LIMIT_GENERAL_CAPACITY` / `..._GENERAL_REFILL` | `60` / `10` | other API and MCP calls |
 | `DB_POOL_SIZE` / `DB_MIN_IDLE` | `20` / `5` | main Hikari pool for repositories and FTS |
 | `VECTOR_POOL_SIZE` | `10` | dedicated iterative-HNSW pool for vector search |
-| `REPOLENS_API_KEY_CACHE_TTL` | `60s` | auth cache TTL (`0s` disables; revocation is delayed by this) |
+| `REPOPRISM_API_KEY_CACHE_TTL` | `60s` | auth cache TTL (`0s` disables; revocation is delayed by this) |
 
-### Tuning (`application.yml`, `repolens.*`)
+### Tuning (`application.yml`, `repoprism.*`)
 
 | Property | Default | Meaning |
 |---|---|---|
@@ -419,13 +419,13 @@ run spreads are documented in `docs/BENCHMARKS.md`.
 
 ## Observability
 
-- **Metrics** (`/actuator/prometheus`): `repolens_ask_latency_seconds` (tags `cached`, `refused`),
-  `repolens_retrieval_latency_seconds` (tags `stage=vector|keyword|fuse`),
-  `repolens_llm_latency_seconds`, `repolens_llm_errors_total`, `repolens_cache_hits_total`,
-  `repolens_cache_misses_total`, `repolens_ratelimit_rejected_total` (tag `scope`),
-  `repolens_ingest_docs_total`, `repolens_ingest_chunks_total`, `repolens_ingest_duration_seconds`,
+- **Metrics** (`/actuator/prometheus`): `repoprism_ask_latency_seconds` (tags `cached`, `refused`),
+  `repoprism_retrieval_latency_seconds` (tags `stage=vector|keyword|fuse`),
+  `repoprism_llm_latency_seconds`, `repoprism_llm_errors_total`, `repoprism_cache_hits_total`,
+  `repoprism_cache_misses_total`, `repoprism_ratelimit_rejected_total` (tag `scope`),
+  `repoprism_ingest_docs_total`, `repoprism_ingest_chunks_total`, `repoprism_ingest_duration_seconds`,
   plus JVM, HTTP server, and HikariCP defaults. Histograms are enabled for p50/p95/p99.
-- **Dashboard:** `deploy/grafana/dashboards/repolens.json` (10 panels: latency percentile, throughput,
+- **Dashboard:** `deploy/grafana/dashboards/repoprism.json` (10 panels: latency percentile, throughput,
   error rate, cache hit ratio, rate-limit rejections, retrieval stages, ingestion).
 - **Logs:** structured JSON (ECS), service name/version, request ID from `X-Request-Id` (or UUID) in
   MDC, one access line per API/MCP request. API keys and prompts are never logged at INFO.
@@ -442,7 +442,7 @@ run spreads are documented in `docs/BENCHMARKS.md`.
   exempt (protect Prometheus at the network layer).
 - **Rate limiting:** per API key (IP fallback), separate ask/search/general token buckets, 429 with
   `Retry-After` and standard `RateLimit-*` headers.
-- **Auth cache:** successful key hashes are cached for 60 s (`REPOLENS_API_KEY_CACHE_TTL`); revocation
+- **Auth cache:** successful key hashes are cached for 60 s (`REPOPRISM_API_KEY_CACHE_TTL`); revocation
   can take up to that long (`0s` disables caching).
 - **Local bindings:** dev Compose binds Postgres/Prometheus/Grafana/app to `127.0.0.1` only; Grafana
   has no default `admin/admin` password.
@@ -465,7 +465,7 @@ The production target is a small VPS running Docker Compose behind Caddy
 - `deploy/seed.sh` ingests the demo repositories.
 - Demo keys are inserted as hashes and revoked after use (`deploy/README.md`).
 - Images are published to GHCR on `main`/`master` and version tags:
-  `ghcr.io/vishweshpenkar06/repolens:<tag>`; the package must be public or the host must log in.
+  `ghcr.io/vishweshpenkar06/repoprism:<tag>`; the package must be public or the host must log in.
 
 Step-by-step instructions, including the demo-key SQL and seed commands:
 [`deploy/README.md`](deploy/README.md).
@@ -477,7 +477,7 @@ is not live yet; it needs a host/domain and an LLM provider key from the owner.
 
 ```text
 .
-├── src/main/java/com/vishwesh/repolens
+├── src/main/java/com/vishwesh/repoprism
 │   ├── api/            REST controllers, DTOs, problem details
 │   ├── mcp/            MCP tools
 │   ├── ingest/         GitHub client, SSRF guard, chunker, ingestion, stores
@@ -510,14 +510,14 @@ is not live yet; it needs a host/domain and an LLM provider key from the owner.
 ./mvnw spotless:apply         # format
 ./mvnw -Peval verify          # eval with fake LLM (network, ~3 min)
 # real eval: set -a; source .env; set +a; GITHUB_TOKEN=$(gh auth token) ./mvnw -Peval verify
-./mvnw -DskipTests package    # build target/repolens-0.1.0.jar
+./mvnw -DskipTests package    # build target/repoprism-0.1.0.jar
 ```
 
 Load tests (k6 v2.4.0):
 
 ```bash
-RATE_LIMIT_ENABLED=false REPOLENS_API_KEY=loadtest-key \
-  java -jar target/repolens-0.1.0.jar
+RATE_LIMIT_ENABLED=false REPOPRISM_API_KEY=loadtest-key \
+  java -jar target/repoprism-0.1.0.jar
 
 k6 run -e BASE_URL=http://localhost:8081 -e API_KEY=loadtest-key -e REPO_ID=1 load/search.js
 k6 run -e BASE_URL=http://localhost:8081 -e API_KEY=loadtest-key -e REPO_ID=1 load/ask_stubbed.js

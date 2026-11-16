@@ -1,13 +1,13 @@
 spring:
   application:
-    name: repolens
+    name: repoprism
   threads:
     virtual:
       enabled: true
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:55432/repolens}
-    username: ${DB_USERNAME:repolens}
-    password: ${DB_PASSWORD:repolens}
+    url: ${DB_URL:jdbc:postgresql://localhost:55432/repoprism}
+    username: ${DB_USERNAME:repoprism}
+    password: ${DB_PASSWORD:repoprism}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:20}
       minimum-idle: ${DB_MIN_IDLE:5}
@@ -18,7 +18,7 @@ spring:
   ai:
     mcp:
       server:
-        name: repolens
+        name: repoprism
         version: 0.1.0
         type: sync
         protocol: ${MCP_PROTOCOL:streamable}
@@ -35,7 +35,7 @@ spring:
           options:
             padding: true
         cache:
-          directory: ${EMBEDDING_CACHE_DIR:${java.io.tmpdir}/repolens-onnx}
+          directory: ${EMBEDDING_CACHE_DIR:${java.io.tmpdir}/repoprism-onnx}
 
 server:
   port: ${SERVER_PORT:8081}
@@ -67,20 +67,20 @@ management:
   metrics:
     distribution:
       percentiles-histogram:
-        "[repolens.ask.latency]": true
-        "[repolens.retrieval.latency]": true
-        "[repolens.llm.latency]": true
-        "[repolens.ingest.duration]": true
+        "[repoprism.ask.latency]": true
+        "[repoprism.retrieval.latency]": true
+        "[repoprism.llm.latency]": true
+        "[repoprism.ingest.duration]": true
       percentiles:
-        "[repolens.ask.latency]": 0.5,0.95,0.99
-        "[repolens.retrieval.latency]": 0.5,0.95,0.99
+        "[repoprism.ask.latency]": 0.5,0.95,0.99
+        "[repoprism.retrieval.latency]": 0.5,0.95,0.99
 
 logging:
   structured:
     format:
       console: ecs
 
-repolens:
+repoprism:
   github:
     token: ${GITHUB_TOKEN:}
     base-url: https://api.github.com
@@ -117,9 +117,9 @@ repolens:
     embedding-ttl: 24h
     embedding-max-size: 10000
   security:
-    api-key-required: ${REPOLENS_API_KEY_REQUIRED:true}
-    bootstrap-api-key: ${REPOLENS_API_KEY:}
-    api-key-cache-ttl: ${REPOLENS_API_KEY_CACHE_TTL:60s}
+    api-key-required: ${REPOPRISM_API_KEY_REQUIRED:true}
+    bootstrap-api-key: ${REPOPRISM_API_KEY:}
+    api-key-cache-ttl: ${REPOPRISM_API_KEY_CACHE_TTL:60s}
   rate-limit:
     enabled: ${RATE_LIMIT_ENABLED:true}
     ask-capacity: ${RATE_LIMIT_ASK_CAPACITY:10}

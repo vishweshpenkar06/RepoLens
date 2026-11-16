@@ -1,7 +1,7 @@
 # Evaluation
 
-RepoLens ships an evaluation harness because "it feels right" is not evidence. The harness lives in
-`eval/` and `src/test/java/com/vishwesh/repolens/eval/`. Provenance: HUMAN CHECKPOINT 4 (curating
+RepoPrism ships an evaluation harness because "it feels right" is not evidence. The harness lives in
+`eval/` and `src/test/java/com/vishwesh/repoprism/eval/`. Provenance: HUMAN CHECKPOINT 4 (curating
 cases) was delegated to the agent (ADR-0016). Every case is marked
 `"drafted_by": "agent", "review_status": "needs_human_review"` and should be reviewed before being
 quoted as human curation.

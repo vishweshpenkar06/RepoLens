@@ -1,7 +1,7 @@
-# RepoLens: Masterplan
+# RepoPrism: Masterplan
 
 > Hand this whole file to your AI coding agent. Put it in the repo root as `MASTERPLAN.md`.
-> Working title: **RepoLens**. Rename freely.
+> Working title: **RepoPrism**. Rename freely.
 
 ---
 
@@ -100,7 +100,7 @@
 **Package layout (single Maven module, package-by-feature)**
 
 ```
-com.<you>.repolens
+com.<you>.repoprism
   api/            REST controllers, DTOs, ProblemDetail error handling
   mcp/            MCP tool definitions and wiring
   ingest/         GitHubClient, DocumentLoader, MarkdownChunker, IngestionService, job runner
@@ -293,12 +293,12 @@ Requirements
 ## 9. Observability
 
 **Metrics (Micrometer, Prometheus)**
-- `repolens_ask_latency` (timer, tags: cached, refused)
-- `repolens_retrieval_latency` (tags: stage = vector|keyword|fuse)
-- `repolens_llm_latency`, `repolens_llm_errors_total`
-- `repolens_cache_hits_total` / `misses_total`
-- `repolens_ratelimit_rejected_total`
-- `repolens_ingest_docs_total`, `repolens_ingest_chunks_total`, `repolens_ingest_duration`
+- `repoprism_ask_latency` (timer, tags: cached, refused)
+- `repoprism_retrieval_latency` (tags: stage = vector|keyword|fuse)
+- `repoprism_llm_latency`, `repoprism_llm_errors_total`
+- `repoprism_cache_hits_total` / `misses_total`
+- `repoprism_ratelimit_rejected_total`
+- `repoprism_ingest_docs_total`, `repoprism_ingest_chunks_total`, `repoprism_ingest_duration`
 - JVM, HTTP server, and HikariCP defaults
 
 **Logging:** JSON logs, request ID in MDC, never log API keys or full prompts at INFO.
@@ -468,7 +468,7 @@ Be honest and confident on the resume: *"Designed and built with AI-assisted too
 
 ## 19. Appendix B: Resume bullets (fill in real numbers)
 
-- Built **RepoLens**, an open-source Java 21 / Spring Boot MCP server and REST API for grounded Q&A over GitHub documentation, using hybrid retrieval (pgvector + Postgres FTS, Reciprocal Rank Fusion).
+- Built **RepoPrism**, an open-source Java 21 / Spring Boot MCP server and REST API for grounded Q&A over GitHub documentation, using hybrid retrieval (pgvector + Postgres FTS, Reciprocal Rank Fusion).
 - Improved retrieval hit@6 from **X% to Y%** over vector-only search on a 50-question evaluation set; achieved **Z%** citation validity and correct refusal on unanswerable questions.
 - Sustained **N req/s at p95 < M ms** on a single node using virtual threads; benchmarked **+P% throughput** vs platform threads.
 - Implemented token-bucket rate limiting, response caching (**Q% hit rate**), prompt-injection defenses, and Prometheus/Grafana observability; shipped via GitHub Actions to a public deployment.

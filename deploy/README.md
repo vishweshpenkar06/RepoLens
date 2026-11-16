@@ -15,16 +15,16 @@ compose file also works on any container host that can run a Postgres+pgvector c
 On the server:
 
 ```bash
-git clone <your-repo-url> repolens && cd repolens
+git clone <your-repo-url> repoprism && cd repoprism
 cp .env.example .env
 ```
 
 Edit `.env`:
 
 ```dotenv
-DOMAIN=repolens.example.com
-REPOLENS_IMAGE=ghcr.io/OWNER/repolens:0.1.0
-REPOLENS_API_KEY=<openssl rand -hex 32>
+DOMAIN=repoprism.example.com
+REPOPRISM_IMAGE=ghcr.io/OWNER/repoprism:0.1.0
+REPOPRISM_API_KEY=<openssl rand -hex 32>
 DB_PASSWORD=<random password>
 LLM_PROVIDER=openai          # or openrouter, groq, ollama...
 LLM_BASE_URL=https://api.openai.com/v1
@@ -48,7 +48,7 @@ public Prometheus/Grafana/Postgres port.
 ## 4. Seed the demo repositories
 
 ```bash
-BASE_URL=https://$DOMAIN REPOLENS_API_KEY=<key> ./deploy/seed.sh
+BASE_URL=https://$DOMAIN REPOPRISM_API_KEY=<key> ./deploy/seed.sh
 ```
 
 This ingests `encode/httpx`, `Kludex/starlette` and `octocat/Hello-World`. First ingestion downloads
@@ -64,7 +64,7 @@ DEMO_KEY=$(openssl rand -hex 32)
 # store only the hash (label "demo"), then revoke it when the demo ends
 HASH=$(printf '%s' "$DEMO_KEY" | sha256sum | cut -d' ' -f1)
 docker compose -f deploy/docker-compose.prod.yml exec postgres \
-  psql -U repolens -d repolens -c \
+  psql -U repoprism -d repoprism -c \
   "INSERT INTO api_key (key_hash, label) VALUES ('$HASH', 'demo');"
 ```
 

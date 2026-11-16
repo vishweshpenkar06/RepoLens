@@ -28,7 +28,7 @@ with exploit details. You can expect an acknowledgement within 7 days.
   only when a provider key is configured (see `docs/EVAL.md`).
 - Rate limiting and caches are per node; multi-node deployments need a shared limiter/cache.
 - Successful API-key hashes are cached for 60 s by default; revocation can take up to that TTL
-  (`REPOLENS_API_KEY_CACHE_TTL=0s` disables the cache).
+  (`REPOPRISM_API_KEY_CACHE_TTL=0s` disables the cache).
 - Dev Compose publishes ports on `127.0.0.1` only and uses a non-`admin/admin` Grafana fallback
   password. Production Compose exposes only Caddy's 80/443.
 - The demo instance, if deployed, must use a rotated key and tight rate limits.
@@ -36,8 +36,8 @@ with exploit details. You can expect an acknowledgement within 7 days.
 
 ## Hardening checklist for deployment
 
-- Set `REPOLENS_API_KEY` to a random value (`openssl rand -hex 32`) and never commit it.
+- Set `REPOPRISM_API_KEY` to a random value (`openssl rand -hex 32`) and never commit it.
 - Put TLS in front of the app (Caddy/nginx/load balancer) and expose only 443.
 - Do not publish the Postgres, Prometheus, or Grafana ports.
-- Keep `REPOLENS_API_KEY_REQUIRED=true` and rate limiting enabled.
+- Keep `REPOPRISM_API_KEY_REQUIRED=true` and rate limiting enabled.
 - Rotate keys by inserting a new hash and setting `revoked=true` on the old row.

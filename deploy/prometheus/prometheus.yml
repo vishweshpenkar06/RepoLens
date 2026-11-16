@@ -3,11 +3,11 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: repolens-compose
+  - job_name: repoprism-compose
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["app:8081"]
-  - job_name: repolens-host
+  - job_name: repoprism-host
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["host.docker.internal:8081"]
