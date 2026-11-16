@@ -13,7 +13,7 @@
 	<version>0.1.0</version>
 	<name>repoprism</name>
 	<description>Self-hosted RAG service and MCP server for GitHub documentation</description>
-	<url>https://github.com/vishweshpenkar06/RepoLens</url>
+	<url>https://github.com/vishweshpenkar06/RepoPrism</url>
 	<licenses>
 		<license>
 			<name>MIT License</name>
@@ -26,9 +26,9 @@
 		</developer>
 	</developers>
 	<scm>
-		<connection>scm:git:https://github.com/vishweshpenkar06/RepoLens.git</connection>
-		<developerConnection>scm:git:ssh://git@github.com/vishweshpenkar06/RepoLens.git</developerConnection>
-		<url>https://github.com/vishweshpenkar06/RepoLens</url>
+		<connection>scm:git:https://github.com/vishweshpenkar06/RepoPrism.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com/vishweshpenkar06/RepoPrism.git</developerConnection>
+		<url>https://github.com/vishweshpenkar06/RepoPrism</url>
 	</scm>
 
 	<properties>

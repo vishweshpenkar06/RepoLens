@@ -1,6 +1,6 @@
 # RepoPrism
 
-[![CI](https://github.com/vishweshpenkar06/RepoLens/actions/workflows/ci.yml/badge.svg)](https://github.com/vishweshpenkar06/RepoLens/actions/workflows/ci.yml)
+[![CI](https://github.com/vishweshpenkar06/RepoPrism/actions/workflows/ci.yml/badge.svg)](https://github.com/vishweshpenkar06/RepoPrism/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/projects/jdk/25/)
 [![Spring Boot 4.1.2](https://img.shields.io/badge/Spring%20Boot-4.1.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
@@ -165,7 +165,7 @@ Maven is needed.
 ### Full stack with Docker
 
 ```bash
-git clone https://github.com/vishweshpenkar06/RepoLens.git
+git clone https://github.com/vishweshpenkar06/RepoPrism.git
 cd RepoPrism
 cp .env.example .env
 # set REPOPRISM_API_KEY to a random value: openssl rand -hex 32
